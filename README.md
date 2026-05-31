@@ -22,9 +22,12 @@ Detailed language, CLI, workspace, LSP, and implementation notes live in
 Build the CLI and LSP server:
 
 ```bash
-make build
-make lsp
+make build       # standalone ./bin/dsl
+make build-full  # combined ./bin/dsl-full with `dsl-full lsp`
+make lsp         # standalone ./bin/dsl-lsp
 ```
+
+For a combined binary literally named `dsl`, run `make build-full FULL_BIN=./bin/dsl`.
 
 Run the CLI against the included example:
 
@@ -68,7 +71,8 @@ For complete syntax and semantics, see the language docs under
 
 ```bash
 make help              # list available targets
-make build             # build ./bin/dsl
+make build             # build standalone ./bin/dsl
+make build-full        # build combined ./bin/dsl-full
 make lsp               # build ./bin/dsl-lsp
 make test              # run Go tests
 make parse FILE=...    # parse a DSL file

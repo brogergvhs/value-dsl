@@ -12,8 +12,9 @@ description: 'Build from source, write your first DSL file, and run the analysis
 
 ```bash
 # Clone or enter the repository
-make build   # → ./bin/dsl (CLI)
-make lsp     # → ./bin/dsl-lsp (LSP server)
+make build       # → ./bin/dsl (standalone CLI)
+make build-full  # → ./bin/dsl-full (CLI + `dsl-full lsp`)
+make lsp         # → ./bin/dsl-lsp (standalone LSP server)
 ```
 
 Add `./bin` to your `PATH` or reference the binaries directly.

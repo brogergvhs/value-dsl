@@ -2,7 +2,11 @@ SHELL := /bin/sh
 
 APP := dsl
 CMD := ./cmd/dsl-cli
-BIN := ./bin/$(APP)
+BIN ?= ./bin/$(APP)
+FULL_BIN ?= ./bin/dsl-full
+CLI_LSP_TAG := dsl_lsp
+GO_BUILD_FLAGS ?= -trimpath
+GO_LDFLAGS ?= -s -w
 
 LSP_CMD := ./cmd/dsl-lsp
 LSP_BIN := ./bin/dsl-lsp
@@ -14,17 +18,20 @@ FILE ?= examples/basic.dsl
 OUTPUT ?= conflicts.csv
 FORMAT ?= csv
 
-.PHONY: help deps build lsp run test fmt check clean parse validate analyze analyze-stdin grammar-export langspec-export tree-sitter-sync tree-sitter-test tree-sitter tree-sitter-install full
+.PHONY: help deps build build-full lsp run run-full test test-full fmt check clean parse validate analyze analyze-stdin grammar-export langspec-export tree-sitter-sync tree-sitter-test tree-sitter tree-sitter-install full
 
 help:
 	@echo "Usage: make <target> [FILE=examples/basic.dsl] [OUTPUT=conflicts.csv] [FORMAT=csv]"
 	@echo ""
 	@echo "Targets:"
 	@echo "  deps          Download Go module dependencies"
-	@echo "  build         Build CLI binary to $(BIN)"
+	@echo "  build         Build standalone CLI binary to $(BIN)"
+	@echo "  build-full    Build combined CLI+LSP binary to $(FULL_BIN)"
 	@echo "  lsp           Build LSP binary to $(LSP_BIN)"
 	@echo "  run           Run CLI root command (shows help)"
+	@echo "  run-full      Run combined CLI+LSP root command (shows help)"
 	@echo "  test          Run all tests"
+	@echo "  test-full     Run combined CLI+LSP tests"
 	@echo "  fmt           Format Go code"
 	@echo "  check         Check Go formatting without modifying files (for CI)"
 	@echo "  clean         Remove built artifacts"
@@ -44,18 +51,29 @@ deps:
 
 build:
 	@mkdir -p ./bin
-	go build -o $(BIN) $(CMD)
+	go build $(GO_BUILD_FLAGS) -ldflags "$(GO_LDFLAGS)" -o $(BIN) $(CMD)
+
+build-full:
+	@mkdir -p ./bin
+	go build $(GO_BUILD_FLAGS) -ldflags "$(GO_LDFLAGS)" -tags $(CLI_LSP_TAG) -o $(FULL_BIN) $(CMD)
+	@$(FULL_BIN) lsp --version >/dev/null
 
 lsp:
 	@mkdir -p ./bin
-	go build -o $(LSP_BIN) $(LSP_CMD)
+	go build $(GO_BUILD_FLAGS) -ldflags "$(GO_LDFLAGS)" -o $(LSP_BIN) $(LSP_CMD)
 	@$(LSP_BIN) --version >/dev/null
 
 run:
 	go run $(CMD)
 
+run-full:
+	go run -tags $(CLI_LSP_TAG) $(CMD)
+
 test:
 	go test ./...
+
+test-full:
+	go test -tags $(CLI_LSP_TAG) ./cmd/dsl-cli ./cmd/dsl-lsp ./internal/lsp
 
 fmt:
 	gofmt -w $(shell find . -name '*.go' -type f)
@@ -107,4 +125,4 @@ tree-sitter: grammar-export
 	cd ./tools/tree-sitter-value-dsl && tree-sitter test
 	$(MAKE) tree-sitter-install
 
-full: test build lsp tree-sitter
+full: test test-full build build-full lsp tree-sitter

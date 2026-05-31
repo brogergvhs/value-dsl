@@ -8,18 +8,25 @@ description: 'Entry points, all Makefile targets, tree-sitter pipeline, generate
 | Command                   | Binary            | Makefile target       |
 | ------------------------- | ----------------- | --------------------- |
 | `cmd/dsl-cli`             | `./bin/dsl`       | `make build`          |
+| `cmd/dsl-cli` + LSP tag   | `./bin/dsl-full`  | `make build-full`     |
 | `cmd/dsl-lsp`             | `./bin/dsl-lsp`   | `make lsp`            |
 | `cmd/dsl-langspec-export` | _(not installed)_ | `make grammar-export` |
 
 `cmd/dsl-langspec-export` writes `generated/grammar.json` and is only used internally by the tree-sitter pipeline. It is not distributed as a user-facing binary.
 
+`make build` intentionally builds the standalone CLI without the embedded `dsl lsp` command. Use `make build-full` when you want one binary that includes both CLI commands and the language server as `dsl-full lsp`. For a combined binary literally named `dsl`, run `make build-full FULL_BIN=./bin/dsl`. The combined binary is larger because Go links the CLI package graph and the GLSP/LSP package graph into the same executable.
+
+All binary build targets use `-trimpath -ldflags "-s -w"` by default to remove local path metadata, the symbol table, and DWARF debug data. Override `GO_BUILD_FLAGS` or `GO_LDFLAGS` when you need debuggable binaries.
+
 ## Makefile Targets
 
 | Target                | What it does                                                      |
 | --------------------- | ----------------------------------------------------------------- |
-| `build`               | Compile `cmd/dsl-cli` → `./bin/dsl`                               |
+| `build`               | Compile standalone `cmd/dsl-cli` → `./bin/dsl`                    |
+| `build-full`          | Compile `cmd/dsl-cli` with `dsl_lsp` tag → `./bin/dsl-full`       |
 | `lsp`                 | Compile `cmd/dsl-lsp` → `./bin/dsl-lsp`                           |
 | `test`                | `go test ./...`                                                   |
+| `test-full`           | Test the tagged combined CLI/LSP build                            |
 | `fmt`                 | `gofmt -w` all Go files                                           |
 | `check`               | `gofmt -l` all Go files; exits 1 if any differ (CI gate)          |
 | `parse`               | Run `dsl parse` on `FILE=`                                        |
@@ -30,7 +37,7 @@ description: 'Entry points, all Makefile targets, tree-sitter pipeline, generate
 | `tree-sitter-test`    | Run drift check + tree-sitter corpus tests                        |
 | `tree-sitter-install` | Compile `parser.so` and copy to `TS_PARSER_DIR`                   |
 | `tree-sitter`         | Full pipeline: sync + test + install                              |
-| `full`                | `build` + `lsp` + `tree-sitter` + `test`                          |
+| `full`                | `test` + `test-full` + all binaries + `tree-sitter`               |
 | `clean`               | Remove `./bin/`                                                   |
 
 <Callout type="info">
@@ -100,7 +107,7 @@ go test ./internal/lsp/...
 ```bash
 make check    # gofmt — fails if any file is not formatted
 make test     # all tests
-make full     # build + lsp + tree-sitter + test (for release verification)
+make full     # tests, all binaries, and tree-sitter (for release verification)
 ```
 
 For a clean CI gate: `make check && make test` is the minimum. `make full` is recommended before tagging a release to verify the tree-sitter pipeline is in sync.

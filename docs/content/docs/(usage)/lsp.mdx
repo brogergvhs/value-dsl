@@ -6,8 +6,16 @@ description: 'Language Server Protocol integration — capabilities, editor setu
 The LSP server provides IDE integration for `.dsl` files. It runs as a separate process and communicates over stdio using the Language Server Protocol.
 
 ```bash
-make lsp       # → ./bin/dsl-lsp
+make lsp         # → ./bin/dsl-lsp
+make build-full  # → ./bin/dsl-full, runs as `dsl-full lsp`
 ```
+
+Use `dsl-lsp` directly, or configure an editor to run `dsl-full` with `lsp`
+as its first argument.
+
+For a combined binary literally named `dsl`, run
+`make build-full FULL_BIN=./bin/dsl` and configure the editor command as
+`dsl lsp`.
 
 ## Workspace awareness
 
