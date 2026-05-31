@@ -1,0 +1,138 @@
+---
+title: 'LSP Server'
+description: 'Server internals, document lifecycle, debounce logic, analysis caching, and how to add new features.'
+---
+
+The LSP server wraps `github.com/tliron/glsp`, which handles JSON-RPC transport and LSP protocol encoding. The server itself manages document state, analysis scheduling, and feature dispatch.
+
+## Library
+
+`github.com/tliron/glsp` provides:
+
+- JSON-RPC 2.0 transport over stdio
+- LSP protocol type bindings
+- Handler registration via a `Handler` struct
+
+The `Server` struct wraps `glsp.Server` and adds all application-level state.
+
+## Server Fields
+
+| Field           | Type                           | Purpose                                                                              |
+| --------------- | ------------------------------ | ------------------------------------------------------------------------------------ |
+| `documents`     | `*Store`                       | Document text store: URI → `{text, version, hash}`                                   |
+| `analysisCache` | `*Cache`                       | LRU cache of analysis results: `(URI, hash)` → `coreanalysis.Result` (256-entry cap) |
+| `lifecycleMu`   | `sync.Mutex`                   | Serializes open/change/close mutations                                               |
+| `scheduleMu`    | `sync.Mutex`                   | Protects pending timer state                                                         |
+| `scheduled`     | `map[string]scheduledAnalysis` | Pending debounce timers per URI                                                      |
+| `serials`       | `map[string]uint64`            | Monotonic counter per URI for stale-callback detection                               |
+| `debounce`      | `time.Duration`                | 200 ms (hardcoded)                                                                   |
+| `logger`        | `*slog.Logger`                 | Optional structured logger                                                           |
+
+## Document Lifecycle
+
+**`textDocument/didOpen`**
+
+1. Cancel any pending debounce timer for this URI
+2. `documents.Set(uri, text, version)` — store document
+3. `analyzeDocument(document)` — run pipeline immediately (no debounce on open)
+4. `publishDiagnostics(notify, uri, version, result)`
+
+**`textDocument/didChange`**
+
+1. `documents.Update(uri, contentChanges, version)` — apply incremental text changes
+2. `scheduleAnalysis(notify, document)` — debounce, then analyze and publish
+
+**`textDocument/didClose`**
+
+1. Cancel any pending debounce timer
+2. `documents.Delete(uri)`
+3. `analysisCache.Delete(uri)`
+4. `publishDiagnostics(notify, uri, 0, coreanalysis.Result{})` — clear diagnostics in editor
+
+## Debounce Logic
+
+`scheduleAnalysis(notify, document)` implements per-URI debouncing:
+
+1. Increment `serials[uri]` → capture `serial`
+2. `time.AfterFunc(200ms, func() { ... })`
+3. Callback checks `isScheduled(uri, serial)` — if the serial has been superseded (another change arrived), the callback returns without publishing
+4. On match: run `analyzeDocument`, then `publishDiagnostics`
+
+This ensures that rapid edits (e.g., typing) do not trigger a cascade of pipeline runs — only the last change within a 200 ms window produces a diagnostic publish.
+
+## Analysis and Caching
+
+**`analyzeDocument(document) coreanalysis.Result`**
+
+1. Compute content hash
+2. Check `analysisCache` for a hit on `(uri, hash)` — if hit, return cached result
+3. On miss: call `analysis.Run(document.Text)` → store in `analysisCache` → return result
+
+**`navigationAnalysis(uri, current coreanalysis.Result) *docindex.Document`**
+
+1. If `current` has a valid model: store `current.Index` as the navigation fallback
+2. If not: retrieve the last-good fallback via `analysisCache.GetNavigationFallback(uri)`
+3. Return `current.Index.WithNavigationDataFromFallback(fallback)` — enables go-to-definition/rename while file has errors
+
+## Feature Handler Pattern
+
+Every LSP feature handler follows the same structure:
+
+```go
+func (s *Server) textDocumentFeature(
+    ctx *glsp.Context,
+    params *protocol.FeatureParams,
+) (any, error) {
+    result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
+    if !ok {
+        return nil, nil
+    }
+
+    index := s.navigationAnalysis(params.TextDocument.URI, result)
+    return resolveFeature(index, params.Position), nil
+}
+```
+
+`currentDocumentAnalysis` fetches the stored document and runs `analyzeDocument`. If the document is not open, it returns `ok = false` and the handler returns `nil` (no response).
+
+## publishDiagnostics
+
+```go
+func publishDiagnostics(
+    notify  glsp.NotifyFunc,
+    uri     protocol.DocumentUri,
+    version int32,
+    result  coreanalysis.Result,
+)
+```
+
+Converts `result.Index.AllDiagnostics()` to `protocol.Diagnostic` slices and calls `notify` with `textDocument/publishDiagnostics`. Safe to call with a nil `notify` (used in tests).
+
+## How to Add a New LSP Feature
+
+1. Add a handler method on `*Server`:
+
+   ```go
+   func (s *Server) textDocumentMyFeature(
+       ctx *glsp.Context,
+       params *protocol.MyFeatureParams,
+   ) (any, error) { ... }
+   ```
+
+2. Register the handler in `newHandler()`:
+
+   ```go
+   handler.TextDocumentMyFeature = s.textDocumentMyFeature
+   ```
+
+3. Advertise the capability in the `initialize()` response:
+
+   ```go
+   capabilities.TextDocumentSync = ... // or whichever capability field
+   ```
+
+4. Implement a resolver function (e.g., `resolveMyFeature(index *docindex.Document, position protocol.Position)`) in a new file in `internal/lsp/`.
+
+5. Use `occurrenceAtPosition(result, position)` to find the symbol under cursor, then `index.LookupDeclaration(kind, name)` or `index.ReferencesFor(kind, name)` for navigation data.
+
+6. Return the appropriate protocol result type (e.g., `[]protocol.Location`, `*protocol.Hover`).

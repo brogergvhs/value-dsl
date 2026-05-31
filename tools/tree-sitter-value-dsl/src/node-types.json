@@ -1,0 +1,741 @@
+[
+  {
+    "type": "access_clause",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string_literal",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "action_clause",
+    "named": true,
+    "fields": {
+      "action": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "action_expression",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "action_expression",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "direct_action",
+          "named": true
+        },
+        {
+          "type": "targeted_action",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "assignment_decl",
+    "named": true,
+    "fields": {
+      "assignment_entry": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "assignment_entry",
+            "named": true
+          }
+        ]
+      },
+      "requirement": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "assignment_entry",
+    "named": true,
+    "fields": {
+      "stakeholders": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "values": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "direct_action",
+    "named": true,
+    "fields": {
+      "mechanism": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string_literal",
+            "named": true
+          }
+        ]
+      },
+      "target": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "verb": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "if_clause",
+    "named": true,
+    "fields": {
+      "actor": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "rest": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "string_literal",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "linked_to_clause",
+    "named": true,
+    "fields": {
+      "target": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string_literal",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "priority_clause",
+    "named": true,
+    "fields": {
+      "level": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "requirement_decl",
+    "named": true,
+    "fields": {
+      "access_clause": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "access_clause",
+            "named": true
+          }
+        ]
+      },
+      "action_clause": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "action_clause",
+            "named": true
+          }
+        ]
+      },
+      "id": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "if_clause": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "if_clause",
+            "named": true
+          }
+        ]
+      },
+      "linked_to_clause": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "linked_to_clause",
+            "named": true
+          }
+        ]
+      },
+      "priority_clause": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "priority_clause",
+            "named": true
+          }
+        ]
+      },
+      "retention_clause": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "retention_clause",
+            "named": true
+          }
+        ]
+      },
+      "stakeholders_clause": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "stakeholders_clause",
+            "named": true
+          }
+        ]
+      },
+      "when_clause": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "when_clause",
+            "named": true
+          }
+        ]
+      },
+      "where_clause": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "where_clause",
+            "named": true
+          }
+        ]
+      },
+      "while_clause": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "while_clause",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "retention_clause",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string_literal",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "source_file",
+    "named": true,
+    "root": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "assignment_decl",
+          "named": true
+        },
+        {
+          "type": "requirement_decl",
+          "named": true
+        },
+        {
+          "type": "stakeholder_decl",
+          "named": true
+        },
+        {
+          "type": "value_decl",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "stakeholder_decl",
+    "named": true,
+    "fields": {
+      "names": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "stakeholders_clause",
+    "named": true,
+    "fields": {
+      "actors": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "targeted_action",
+    "named": true,
+    "fields": {
+      "mechanism": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string_literal",
+            "named": true
+          }
+        ]
+      },
+      "object": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string_literal",
+            "named": true
+          }
+        ]
+      },
+      "target": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "verb": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "value_decl",
+    "named": true,
+    "fields": {
+      "angle": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "number",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "radius": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "number",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "when_clause",
+    "named": true,
+    "fields": {
+      "actor": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "target": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "verb": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "when_verb",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "when_verb",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "where_clause",
+    "named": true,
+    "fields": {
+      "rest": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "string_literal",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "while_clause",
+    "named": true,
+    "fields": {
+      "actor": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "rest": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "string_literal",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": ",",
+    "named": false
+  },
+  {
+    "type": "->",
+    "named": false
+  },
+  {
+    "type": "=",
+    "named": false
+  },
+  {
+    "type": "access",
+    "named": false
+  },
+  {
+    "type": "assignment",
+    "named": false
+  },
+  {
+    "type": "comment",
+    "named": true,
+    "extra": true
+  },
+  {
+    "type": "crosses",
+    "named": false
+  },
+  {
+    "type": "enters",
+    "named": false
+  },
+  {
+    "type": "exceeds",
+    "named": false
+  },
+  {
+    "type": "identifier",
+    "named": true
+  },
+  {
+    "type": "if",
+    "named": false
+  },
+  {
+    "type": "leaves",
+    "named": false
+  },
+  {
+    "type": "linked_to",
+    "named": false
+  },
+  {
+    "type": "number",
+    "named": true
+  },
+  {
+    "type": "of",
+    "named": false
+  },
+  {
+    "type": "priority",
+    "named": false
+  },
+  {
+    "type": "reports",
+    "named": false
+  },
+  {
+    "type": "requests",
+    "named": false
+  },
+  {
+    "type": "requirement",
+    "named": false
+  },
+  {
+    "type": "retention",
+    "named": false
+  },
+  {
+    "type": "shall",
+    "named": false
+  },
+  {
+    "type": "shows",
+    "named": false
+  },
+  {
+    "type": "stakeholder",
+    "named": false
+  },
+  {
+    "type": "stakeholders",
+    "named": false
+  },
+  {
+    "type": "starts",
+    "named": false
+  },
+  {
+    "type": "stops",
+    "named": false
+  },
+  {
+    "type": "string_literal",
+    "named": true
+  },
+  {
+    "type": "system",
+    "named": false
+  },
+  {
+    "type": "using",
+    "named": false
+  },
+  {
+    "type": "value",
+    "named": false
+  },
+  {
+    "type": "when",
+    "named": false
+  },
+  {
+    "type": "where",
+    "named": false
+  },
+  {
+    "type": "while",
+    "named": false
+  }
+]

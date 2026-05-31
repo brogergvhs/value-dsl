@@ -1,0 +1,98 @@
+---
+title: 'Tree-sitter'
+description: 'Tree-sitter grammar for structural syntax highlighting, independent of the LSP.'
+---
+
+The tree-sitter grammar provides structural syntax highlighting for `.dsl` files. It is generated from the Go grammar source, so it stays in sync with the DSL definition automatically.
+
+## Installation
+
+```bash
+make tree-sitter-install
+```
+
+This compiles `parser.so` and copies it to the default (for me hehe) Neovim parser directory:
+
+```
+~/.local/share/nvim/lazy/nvim-treesitter/parser/value_dsl.so
+```
+
+To install to a custom location:
+
+```bash
+TS_PARSER_DIR=/your/path make tree-sitter-install
+```
+
+## Neovim Setup
+
+Register the parser in your nvim-treesitter config:
+
+```lua
+local parser_config = require('nvim-treesitter.parsers').get_parser_configs()
+
+parser_config.value_dsl = {
+  install_info = {
+    url = '/path/to/tools/tree-sitter-value-dsl',
+    files = { 'src/parser.c' },
+    branch = 'main',
+  },
+  filetype = 'dsl',
+}
+```
+
+Add filetype detection if not already set:
+
+```lua
+vim.filetype.add({ extension = { dsl = 'dsl' } })
+```
+
+## Highlighted Token Types
+
+| Token                                                         | Highlight group |
+| ------------------------------------------------------------- | --------------- |
+| Keywords (`stakeholder`, `requirement`, `system shall`, etc.) | `@keyword`      |
+| Identifiers (names, IDs)                                      | `@variable`     |
+| Action verbs and `when` verbs                                 | `@function`     |
+| Numbers (angle, radius)                                       | `@number`       |
+| String literals (quoted values)                               | `@string`       |
+| Comments (`// ...`)                                           | `@comment`      |
+| Punctuation (`->`, `=`, `,`)                                  | `@punctuation`  |
+
+## Sync with the Grammar
+
+The tree-sitter grammar is generated from the Go grammar definition. When the DSL grammar changes, regenerate:
+
+```bash
+make tree-sitter-sync    # regenerate grammar.js and queries from grammar.json
+make tree-sitter-test    # run drift check and corpus tests
+make tree-sitter-install # recompile and install parser.so
+```
+
+Or run the full pipeline at once:
+
+```bash
+make tree-sitter         # sync + test + install
+```
+
+<Callout type="warn">
+  Never edit `tools/tree-sitter-value-dsl/grammar.js` or the query files
+  directly — they are generated and will be overwritten by `make
+  tree-sitter-sync`.
+</Callout>
+
+## Verifying Sync
+
+```bash
+make tree-sitter-test
+```
+
+This runs a drift check (confirms `grammar.js` matches the current `generated/grammar.json`) and the tree-sitter corpus tests. If the drift check fails, run `make tree-sitter-sync` first.
+
+## Relationship to LSP Semantic Tokens
+
+Tree-sitter and LSP semantic tokens are complementary:
+
+- **Tree-sitter**: structural, file-local, no analysis required — works even when the file has errors
+- **LSP semantic tokens**: semantically aware — distinguishes built-in vs custom values, declaration vs reference, valid vs invalid symbols
+
+Both can be active simultaneously. The LSP semantic tokens layer on top of tree-sitter highlighting using the editor's token modifier precedence.

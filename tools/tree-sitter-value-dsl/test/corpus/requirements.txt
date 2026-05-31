@@ -1,0 +1,132 @@
+================================================================================
+Ubiquitous Requirement
+================================================================================
+
+stakeholder Worker
+value privacy_pref = 1.58, 0.91
+
+requirement R1
+system shall notify Worker using AudioAlarm
+stakeholders Worker
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (stakeholder_decl
+    (identifier))
+  (value_decl
+    (identifier)
+    (number)
+    (number))
+  (requirement_decl
+    (identifier)
+    (action_clause
+      (action_expression
+        (direct_action
+          (identifier)
+          (identifier)
+          (identifier))))
+    (stakeholders_clause
+      (identifier))))
+
+================================================================================
+EARS Requirement With Metadata And Traceability
+================================================================================
+
+stakeholder Worker, Supervisor
+value privacy_pref = 1.58, 0.91
+
+requirement R2
+while Worker is in DangerousArea
+when Worker enters DangerousArea
+system shall track location of Worker using Camera
+stakeholders Worker, Supervisor
+priority high
+retention short_term
+access supervisor_only
+linked_to HazardAnalysis
+
+assignment R2
+Worker -> privacy_pref
+Supervisor -> privacy_pref
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (stakeholder_decl
+    (identifier)
+    (identifier))
+  (value_decl
+    (identifier)
+    (number)
+    (number))
+  (requirement_decl
+    (identifier)
+    (while_clause
+      (identifier)
+      (identifier)
+      (identifier)
+      (identifier))
+    (when_clause
+      (identifier)
+      (when_verb)
+      (identifier))
+    (action_clause
+      (action_expression
+        (targeted_action
+          (identifier)
+          (identifier)
+          (identifier)
+          (identifier))))
+    (stakeholders_clause
+      (identifier)
+      (identifier))
+    (priority_clause
+      (identifier))
+    (retention_clause
+      (identifier))
+    (access_clause
+      (identifier))
+    (linked_to_clause
+      (identifier)))
+  (assignment_decl
+    (identifier)
+    (assignment_entry
+      (identifier)
+      (identifier))
+    (assignment_entry
+      (identifier)
+      (identifier))))
+
+================================================================================
+Requirement With Quoted Strings
+================================================================================
+
+stakeholder Worker
+
+requirement R3
+system shall track "user location" of Worker using "GPS system"
+stakeholders Worker
+retention "30 days"
+linked_to "SAFETY-001"
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (stakeholder_decl
+    (identifier))
+  (requirement_decl
+    (identifier)
+    (action_clause
+      (action_expression
+        (targeted_action
+          (identifier)
+          (string_literal)
+          (identifier)
+          (string_literal))))
+    (stakeholders_clause
+      (identifier))
+    (retention_clause
+      (string_literal))
+    (linked_to_clause
+      (string_literal))))

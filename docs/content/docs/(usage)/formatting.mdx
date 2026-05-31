@@ -1,0 +1,90 @@
+---
+title: 'Formatting'
+description: 'Canonical formatting — what the formatter normalizes and what it preserves.'
+---
+
+The formatter produces a canonical, stable representation of any valid DSL file.
+
+## Commands
+
+```bash
+dsl format first.dsl          # print formatted output to stdout
+dsl format -w first.dsl       # write formatted output back to file
+dsl format -                  # read from stdin, write to stdout
+```
+
+<Callout type="warn">
+  `-w` refuses to write if the file has parse errors. This protects against
+  overwriting a file with a truncated or mangled result.
+</Callout>
+
+## What the Formatter Normalizes
+
+| Aspect                                   | Canonical form                                                                     |
+| ---------------------------------------- | ---------------------------------------------------------------------------------- |
+| Spacing around `->`                      | `user -> privacy` (single spaces)                                                  |
+| Spacing around `=` in value declarations | `value trust = 1.57, 0.85`                                                         |
+| Spacing around `,`                       | `user, admin` (space after comma)                                                  |
+| Spacing between keyword and body         | single space                                                                       |
+| Numbers                                  | trailing `0` removed (`1.800` -> `1.8`), `0` before decimals added (`.8` -> `0.8`) |
+| Multi-word strings                       | enclosed in single quotes                                                          |
+| Blank lines between declaration kinds    | exactly one blank line between blocks (`requirement` and `assignment`)             |
+| Dense groups                             | no blank line between consecutive declarations (`stakeholder` or `value`)          |
+
+<Callout type="warn">
+  Implicitly from the spacing rules and abcence of an indentation-specific rule,
+  the formatter will also remove all indentation.
+</Callout>
+
+## What the Formatter Preserves
+
+- **Comments**: both full-line and inline comments are kept in place
+- **Declaration order**: the relative ordering of declarations is unchanged
+- **User grouping**: the formatter does not reorder or merge declarations
+
+## Idempotency
+
+The formatter is idempotent: formatting an already-formatted file produces identical output. This makes it safe to use in pre-commit hooks or CI checks:
+
+```bash
+# CI check: fail if any file is not formatted
+dsl format first.dsl | diff - first.dsl
+```
+
+## Example
+
+**Before:**
+
+```text
+stakeholder user,admin
+value trust=1.57,.85
+‎
+requirement REQ001
+  system shall     anonymize personal_data of user
+  stakeholders user,admin
+  priority     high
+‎
+‎
+‎
+assignment       REQ001
+  user->privacy
+‎
+  admin->order
+```
+
+**After:**
+
+```text
+stakeholder user, admin
+‎
+value trust = 1.57, 0.85
+‎
+requirement REQ001
+system shall anonymize personal_data of user
+stakeholders user, admin
+priority high
+‎
+assignment REQ001
+user -> privacy
+admin -> order
+```

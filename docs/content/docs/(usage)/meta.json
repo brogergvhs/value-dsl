@@ -1,0 +1,15 @@
+{
+  "title": "DSL Usage",
+  "pages": [
+    "index",
+    "getting-started",
+    "language",
+    "workspace",
+    "validation",
+    "formatting",
+    "cli",
+    "import-export",
+    "lsp",
+    "tree-sitter"
+  ]
+}

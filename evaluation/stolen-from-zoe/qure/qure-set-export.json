@@ -1,0 +1,160 @@
+{
+  "stakeholders": [
+    "Driver",
+    "Pedestrian",
+    "Validation_Engineer",
+    "Other_Drivers"
+  ],
+  "requirements": [
+    {
+      "id": "qure114a",
+      "description": "The Central_Activation_Device shall calculate 'crash acceleration and pressure forces' with the aim of 'finding threshold values' by the means of 'appropriate sensors'.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "qure114b",
+      "description": "The Central_Activation_Device shall determine 'if threshold values have been reached' with the aim of 'firing the seat belt tightener and/or the airbag firing squibs or for activation of the crash switches' by the means of 'qure114a'.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "qure159",
+      "description": "The Central_Activation_Device shall calculate 'appropriate firing thresholds' from 'crash measurement signals under consideration of all parameters (belt buckle status, equipment programming, etc.)'.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "qure172",
+      "description": "If the System 'has a mantual transmission', the System shall detect 'driver engine stalling' with the aim of 'distinguishing between normal and bad driver actions' by the means of 'current gear and clutch information'.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "qure226",
+      "description": "The System should employ 'function specific databases (e.g., tunnels and bridges, pedestrians, ...)' with the aim of 'validating component functions'.",
+      "relevantStakeholders": ["Pedestrian", "Validation_Engineer"]
+    },
+    {
+      "id": "qure284a",
+      "description": "The Attention_Assist shall monitor 'drowsiness' of the Driver.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "qure284b",
+      "description": "When the Attention_Assist 'issues a drowsiness warning', the System shall activate 'an Active Comfort Program'.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "qure287a",
+      "description": "The System shall monitor 'the area behind the vehicle without constraints'.",
+      "relevantStakeholders": ["Driver", "Pedestrian"]
+    },
+    {
+      "id": "qure287b",
+      "description": "The System shall display 'the area behind the vehicle without constraints' to the Driver with the aim of 'parking in more easily'.",
+      "relevantStakeholders": ["Driver", "Pedestrian"]
+    },
+    {
+      "id": "qure378",
+      "description": "If 'objects are closer than 100 m', the IDC shall provide 'objects reliably' to the System with the aim of 'ensuring synchronisation to the ADAS graphic in the IC'.",
+      "relevantStakeholders": ["Driver", "Pedestrian"]
+    },
+    {
+      "id": "qure380",
+      "description": "The System shall track 'pedestrian motion (e.g., motion of arms or legs)' with the aim of 'validating close passing scenarios'.",
+      "relevantStakeholders": ["Validation_Engineer", "Pedestrian"]
+    },
+    {
+      "id": "qure462",
+      "description": "The System shall monitor 'the temperature of the vehicle inlet close to the DC pins' by the means of 'a second temperature sensor (type PT1000) integrated into the vehicle inlet'.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "qure469a",
+      "description": "The System shall track 'the distance' of a Pedestrian.",
+      "relevantStakeholders": ["Pedestrian"]
+    },
+    {
+      "id": "qure469b",
+      "description": "When a Pedestrian 'projected movement will bring them into the pedestrian warning area (TSA5_Func-319) at the time of the EV reaching the crosswalk', the System shall classify 'a pedestrian' as 'close to the crosswalk'.",
+      "relevantStakeholders": ["Pedestrian"]
+    },
+    {
+      "id": "qure497a",
+      "description": "When the System 'is close at a crosswalk', the System shall monitor 'the location around the car' with the aim of 'detecting parellel driving cyclists'.",
+      "relevantStakeholders": ["Pedestrian"]
+    },
+    {
+      "id": "qure497b",
+      "description": "If 'the only objects close to a crosswalk are cyclists driving parallel to the System's direction of travel', the System shall not alert the Driver of 'crosswalk warnings'.",
+      "relevantStakeholders": ["Pedestrian", "Driver"]
+    },
+    {
+      "id": "qure500a",
+      "description": "The System shall detect 'close objects' by the means of 'ultrasonic sensors'.",
+      "relevantStakeholders": ["Driver", "Pedestrian"]
+    },
+    {
+      "id": "qure500b",
+      "description": "The System shall display 'discrete distance information of close objects' to the Driver.",
+      "relevantStakeholders": ["Driver", "Pedestrian"]
+    },
+    {
+      "id": "qure501",
+      "description": "The System shall assist the Driver with 'maneuvering the vehicle close to obstacles in front of the vehicle'.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "qure915",
+      "description": "The System shall detect 'if an object does not fulfill the requirements for a pedestrian (incl. pedestrian dummies, pedestrians with sports equipment) independant of their moving state (moving, stationary)' with the aim of 'enabling fast functional reaction after camera fusion'.",
+      "relevantStakeholders": ["Driver", "Pedestrian"]
+    },
+    {
+      "id": "qure922a",
+      "description": "The System shall track 'brake paddle pressing thresholds'.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "qure922b",
+      "description": "If 'the driver touches the brake pedal fast but not deep enough', the System shall activate 'additional braking beyond the dirver's input'.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "qure1050a",
+      "description": "The System shall detect 'Pedestrians in front of the System' by the means of 'long range radar'.",
+      "relevantStakeholders": ["Pedestrian"]
+    },
+    {
+      "id": "qure1050b",
+      "description": "The System shall calculate 'position (x, y), velocity (vx, vy), and quality measures' from 'detected Pedestrians'.",
+      "relevantStakeholders": ["Pedestrian"]
+    },
+    {
+      "id": "qure1178a",
+      "description": "The System shall record 'the belt buckle status'.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "qure1178b",
+      "description": "While 'the belt buckle status cannot be recorded', the System shall display 'Signal Not Available message' on the 'CAN'.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "qure1431a",
+      "description": "The System shall detect 'objects on side tracks and in front of the preceding vehicle'.",
+      "relevantStakeholders": ["Driver", "Other_Drivers", "Pedestrian"]
+    },
+    {
+      "id": "qure1431b",
+      "description": "The System shall calculate 'objects on side tracks and in front of the preceding vehicle'.",
+      "relevantStakeholders": ["Driver", "Other_Drivers", "Pedestrian"]
+    },
+    {
+      "id": "qure1876a",
+      "description": "The System shall track 'the presence' of a Driver.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "qure1876b",
+      "description": "While the Engine 'is in automatic stop state' and 'absence of the driver is detected', the System shall require 'a level 1 restart' for the Engine.",
+      "relevantStakeholders": ["Driver"]
+    }
+  ]
+}

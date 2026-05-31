@@ -1,0 +1,165 @@
+---
+title: 'Semantic Model'
+description: 'SemanticModel structure, Build() phases, all model types, and the Invalid flag lifecycle.'
+---
+
+The semantic model is the typed, cross-referenced representation of a DSL file. It is built from the AST and serves as the input to both validation and conflict analysis.
+
+## SemanticModel
+
+```go
+type SemanticModel struct {
+    Requirements    []model.Requirement
+    RequirementByID map[string]model.Requirement
+
+    Stakeholders    []model.Stakeholder
+    StakeholderByName map[string]model.Stakeholder
+
+    Values          []model.Value
+    ValueByName     map[string]model.Value
+
+    AssignmentEntries []model.AssignmentEntry
+}
+```
+
+Slices preserve declaration order. Maps hold first-seen-wins semantics (duplicates are appended to slices but only the first entry appears in the map).
+
+## Build() Phases
+
+`semantic.Build(doc *ast.DocumentNode) SemanticModel` runs four phases in order:
+
+**Phase 1 — `buildStakeholders`**
+Expands multi-name declarations (`stakeholder user, admin`) into one `model.Stakeholder` per name.
+
+**Phase 2 — `buildValues`**
+Parses `(angle, radius)` from the header fields. Calls `values.ClosestCategory(angle)` to derive and set the `Category` field automatically.
+
+**Phase 3 — `buildRequirements`**
+Dispatches each body clause by `ClauseKind` via a switch statement. Fills `Context`, `Action`, `Stakeholders`, `Metadata`, and `Traceability` fields on `model.Requirement`.
+
+**Phase 4 — `buildAssignments`**
+Groups body lines under the assignment header. Extracts stakeholder and value names as `[]model.Ref` — the mapping is not expanded to pairs at this stage; expansion happens during conflict analysis.
+
+## stakeholderRefs
+
+```go
+func stakeholderRefs(names []string, byName map[string]model.Stakeholder) []model.Stakeholder
+```
+
+Resolves each name against `byName`. Unknown names produce a phantom stakeholder:
+
+```go
+model.Stakeholder{Name: name, Invalid: true}  // zero Line/Range
+```
+
+This lets the semantic model represent undeclared references without panicking, and lets the validator report them precisely.
+
+## Invalid Flag Lifecycle
+
+The `Invalid bool` field on model types is set in three distinct phases:
+
+| Phase                                | Set by           | Why                                                                                   |
+| ------------------------------------ | ---------------- | ------------------------------------------------------------------------------------- |
+| `Build()`                            | Semantic builder | Undeclared stakeholder referenced in `when`/`while`, `stakeholders`, or action target |
+| `markDeclarationsInvalidFromParse()` | Analysis runner  | Parse errors on the declaration's own lines                                           |
+| `applyDeclarationValidity()`         | Validator        | Declaration failed a semantic check (e.g. duplicate, out-of-bounds angle)             |
+
+Downstream consumers (conflict analysis, docindex) skip entries with `Invalid: true`.
+
+## Model Types
+
+### `model.Requirement`
+
+| Field                             | Set by             | Read by                                |
+| --------------------------------- | ------------------ | -------------------------------------- |
+| `ID`                              | builder phase 3    | validator, docindex, conflict analysis |
+| `Line`, `Range`                   | builder phase 3    | LSP hover, docindex                    |
+| `Context []Clause`                | builder phase 3    | LSP hover                              |
+| `Action Action`                   | builder phase 3    | LSP hover, docindex                    |
+| `Stakeholders []Stakeholder`      | builder phase 3    | conflict analysis                      |
+| `Metadata MetadataFields`         | builder phase 3    | LSP hover                              |
+| `Traceability []TraceabilityLink` | builder phase 3    | LSP hover                              |
+| `Invalid bool`                    | builder, validator | conflict analysis (skip), docindex     |
+
+### `model.Stakeholder`
+
+| Field           | Description                              |
+| --------------- | ---------------------------------------- |
+| `Name`          | Declared name                            |
+| `Line`, `Range` | Source position of declaration           |
+| `Invalid`       | True for phantom (undeclared) references |
+
+### `model.Value`
+
+| Field                   | Description                                                                   |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| `Name`                  | Declared name                                                                 |
+| `Category`              | Derived from angle via `values.ClosestCategory()`                             |
+| `Angle`, `Radius`       | Polar coordinates                                                             |
+| `HasAngle`, `HasRadius` | Whether the respective field was parsed (may be missing if malformed)         |
+| `HasValueComma`         | Whether the comma between angle and radius was present                        |
+| `Builtin`               | Always false for DSL-declared values (reserved for future built-in injection) |
+| `Invalid`               | Set by validator on out-of-bounds or duplicate                                |
+
+### `model.Action`
+
+| Field           | Description                                                               |
+| --------------- | ------------------------------------------------------------------------- |
+| `Verb`          | The action verb (e.g. `anonymize`, `notify`)                              |
+| `Object`        | The object operand (`personal_data` in `anonymize personal_data of user`) |
+| `Target`        | The stakeholder target                                                    |
+| `Mechanism`     | Optional `using` argument                                                 |
+| `RawText`       | Full raw text of the action line                                          |
+| `Line`, `Range` | Source position                                                           |
+
+### `model.Clause`
+
+| Field           | Description                            |
+| --------------- | -------------------------------------- |
+| `Type`          | `RequirementClauseKind` constant       |
+| `Actor`         | Actor name from `when`/`while` clauses |
+| `Verb`          | Event verb from `when` clause          |
+| `Target`        | Target from `when` clause              |
+| `RawText`       | Full raw text                          |
+| `Line`, `Range` | Source position                        |
+
+### `model.AssignmentEntry`
+
+| Field                | Description                          |
+| -------------------- | ------------------------------------ |
+| `RequirementID`      | The assignment header ID             |
+| `Stakeholders []Ref` | Left-hand side names (unresolved)    |
+| `Values []Ref`       | Right-hand side names (unresolved)   |
+| `Line`               | Source line of this body line        |
+| `HeaderLine`         | Source line of the assignment header |
+
+### `model.Ref`
+
+A lightweight unresolved reference used in assignments:
+
+```go
+type Ref struct {
+    Name string
+}
+```
+
+Resolution to full stakeholder/value types happens during conflict analysis when both sides of the mapping are expanded into pairs.
+
+### `model.ConflictResult`
+
+| Field           | Description                                   |
+| --------------- | --------------------------------------------- |
+| `RequirementID` | Requirement this conflict belongs to          |
+| `StakeholderA`  | First stakeholder (lexicographically earlier) |
+| `ValueA`        | Value assigned to `StakeholderA`              |
+| `StakeholderB`  | Second stakeholder                            |
+| `ValueB`        | Value assigned to `StakeholderB`              |
+| `ConflictScore` | Float in `[0, 1]`                             |
+
+## LookupRequirement
+
+```go
+func (m *SemanticModel) LookupRequirement(id string) (model.Requirement, bool)
+```
+
+Uses `RequirementByID` map for O(1) lookup. Falls back to linear scan over `Requirements` slice when `RequirementByID` is nil — this handles tests that construct `SemanticModel` without populating the map directly.

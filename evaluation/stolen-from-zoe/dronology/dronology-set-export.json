@@ -1,0 +1,152 @@
+{
+  "stakeholders": [
+    "Operator",
+    "Rescuee",
+    "Indirectly_Involved_Humans",
+    "Standby_Operator",
+    "Recipient",
+    "Mission_Supervisor",
+    "Ground_Rescue_Team",
+    "Observed_Humans",
+    "Product_Owner"
+  ],
+  "requirements": [
+    {
+      "id": "Dronology0",
+      "description": "If the Operator 'interaction rate with the UI drops below {{MIN_INTERACTION_THRESHOLD}} for more than 60 seconds', the Dronology shall display 'a Fatigue Check warning' on the 'RealTimeFlightUI'.",
+      "relevantStakeholders": ["Operator"]
+    },
+    {
+      "id": "Dronology1",
+      "description": "While the Operator 'measured attention level is below a predefined threshold', the Dronology shall turn 'the volume of audible alerts for emergency events' to '{x}dB'.",
+      "relevantStakeholders": ["Operator"]
+    },
+    {
+      "id": "Dronology1_alt",
+      "description": "While the Operator 'measured attention level is below a predefined threshold', the Dronology shall change 'the volume of audible alerts for emergency events' to '{x}dB'.",
+      "relevantStakeholders": ["Operator"]
+    },
+    {
+      "id": "Dronology2",
+      "description": "While the following conditions are satisfied:\n    - 'a mission is active', and\n    - the Operator 'biometric data indicates a stress level above {{MAX_STRESS_THRESHOLD}}'\nthe Dronology shall propose 'a control handover' to a Standby_Operator.",
+      "relevantStakeholders": ["Operator", "Standby_Operator"]
+    },
+    {
+      "id": "Dronology3",
+      "description": "While the Operator 'has a 'Trainee' certification level', the Dronology shall restrict 'the execution of flight plans marked as 'Expert Level''.",
+      "relevantStakeholders": ["Operator"]
+    },
+    {
+      "id": "Dronology4",
+      "description": "If the Operator 'continuous control session exceeds the maximum duration defined by employer policy', the Dronology shall enforce 'a mandatory control handover procedure to a secondary operator'.",
+      "relevantStakeholders": ["Operator", "Standby_Operator"]
+    },
+    {
+      "id": "Dronology5",
+      "description": "When the UAV 'thermal camera detects a human heat signature matching rescue criteria', the Dronology shall create 'a 'Potential Target' waypoint on the map'.",
+      "relevantStakeholders": ["Operator", "Rescuee"]
+    },
+    {
+      "id": "Dronology5_1",
+      "description": "When the UAV 'thermal camera detects a human heat signature matching rescue criteria', the Dronology shall display 'a highlighted 'Potential Target' waypoint on the map' of the Operator.",
+      "relevantStakeholders": ["Operator", "Rescuee"]
+    },
+    {
+      "id": "Dronology6",
+      "description": "When a Rescuee 'is located', the Dronology shall display 'their estimated vital signs' on the 'RealTimeFlightUI' by the means of 'sensor feeds'.",
+      "relevantStakeholders": ["Rescuee", "Operator"]
+    },
+    {
+      "id": "Dronology7",
+      "description": "While the following conditions are satisfied:\n    - 'a surveillance mission is active', and\n    - the UAV 'is in range of {{NO_SURVEILLANCE_ZONE_RANGE}} of a designated 'No Surveillance Zone''\nthe Dronology shall ensure 'the camera is oriented such that the 'no surveillance zone' is not captured'.",
+      "relevantStakeholders": [
+        "Indirectly_Involved_Humans",
+        "Operator",
+        "Rescuee"
+      ]
+    },
+    {
+      "id": "Dronology8",
+      "description": "While the following conditions are satisfied:\n    - 'a delivery UAV is at the final waypoint', and\n    - the UAV 'camera feed visually confirms the Recipient'\nthe Dronology shall allow the Operator 'to issue the 'Release Package' command'.",
+      "relevantStakeholders": ["Operator", "Recipient"]
+    },
+    {
+      "id": "Dronology9",
+      "description": "If the Dronology 'detects a person not identified as the Recipient within the {{DELIVERY_SAFETY_RADIUS}} of the drop-off point', the Dronology shall activate 'the hover function of the UAV and alert the Operator'.",
+      "relevantStakeholders": ["Operator", "Recipient"]
+    },
+    {
+      "id": "Dronology10",
+      "description": "When the Operator 'gaze is detected averted from all mission-critical UI panels for more than {{MAX_LOOKAWAY_TIME}}', the Dronology shall alert the Operator 'with an audible attention prompt'.",
+      "relevantStakeholders": ["Operator"]
+    },
+    {
+      "id": "Dronology11",
+      "description": "While the following conditions are satisfied:\n    - the Operator 'is viewing the map', and\n    - the Operator 'gaze remains on a mission waypoint for more than {{MAX_LOOKAWAY_TIME}}'\nthe Dronology shall display 'contextual information for that waypoint' on the 'MapComponent'.",
+      "relevantStakeholders": ["Operator"]
+    },
+    {
+      "id": "Dronology13",
+      "description": "While 'a mission is in progress', the Dronology shall log 'the physiological data streams' of the Operator by the means of 'timestamps corresponding to mission events'.",
+      "relevantStakeholders": ["Operator"]
+    },
+    {
+      "id": "Dronology15",
+      "description": "When the UAV 'is ready for its final delivery descent', the Operator shall provide 'a positive visual confirmation that the landing zone is clear of bystanders' to the Dronology.",
+      "relevantStakeholders": ["Operator", "Indirectly_Involved_Humans"]
+    },
+    {
+      "id": "Dronology18",
+      "description": "While the following conditions are satisfied:\n    - 'a voice command interface is included', and\n    - the Operator 'issues a valid verbal command'\nthe Dronology shall perform 'the corresponding UAV operation'.",
+      "relevantStakeholders": ["Operator"]
+    },
+    {
+      "id": "HMR_H01",
+      "description": "While 'an active surveillance mission is ongoing' and 'multiple UAVs are involved' and the Operator 'UAV alternation rate exceeds {{MAX_CONTEXT_SWITCH_RATE}}',\n    the Dronology shall propose 'assignment of the critical UAV to an available secondary operator' to the Operator.",
+      "relevantStakeholders": ["Operator", "Standby_Operator"]
+    },
+    {
+      "id": "HMR_H02a",
+      "description": "When 'monitoring a traffic incident and operator response time exceeds {{MAX_ALERT_RESPONSE_TIME}} for {{MAX_ALERT_CONSECUTIVE_MISSED}} consecutive alerts',\n    the Dronology shall change 'alert modalities' into 'escalated state'.",
+      "relevantStakeholders": [
+        "Operator",
+        "Product_Owner",
+        "Mission_Supervisor"
+      ]
+    },
+    {
+      "id": "HMR_H02b",
+      "description": "When 'monitoring a traffic incident and operator response time exceeds {{MAX_ALERT_RESPONSE_TIME}} for {{MAX_ALERT_CONSECUTIVE_MISSED}} consecutive alerts',\n    the Dronology shall notify the Mission_Supervisor.",
+      "relevantStakeholders": ["Operator", "Mission_Supervisor"]
+    },
+    {
+      "id": "HMR_H03",
+      "description": "While 'monitoring agricultural fields' and the UAV 'sensors detect a farm worker in close proximity to machinery',\n    the Dronology shall alert the FarmSupervisor and the Operator.",
+      "relevantStakeholders": ["Operator", "Observed_Humans", "Product_Owner"]
+    },
+    {
+      "id": "HMR_H04",
+      "description": "While 'UAV is operating within {{MIN_BOAT_PROXIMITY}} of a firefighter rescue boat',\n    the Dronology shall require 'supervision confirmation' of the Operator every '{{x}}' Seconds.",
+      "relevantStakeholders": ["Operator", "Product_Owner"]
+    },
+    {
+      "id": "HMR_H05a",
+      "description": "If an Observed_Human 'is detected to be a human within a predefined rescue mission area',\n    the Dronology shall alert the Operator.",
+      "relevantStakeholders": ["Operator", "Observed_Humans"]
+    },
+    {
+      "id": "HMR_H05b",
+      "description": "If an Observed_Human 'is detected to be a human within a predefined rescue mission area',\n    the Dronology shall display 'the image used for detection' to the Operator with the aim of 'confirming if the human is the rescue target'.",
+      "relevantStakeholders": ["Operator", "Observed_Humans"]
+    },
+    {
+      "id": "HMR_H06",
+      "description": "If an Observed_Human 'is detected as a rescue target',\n    the Dronology shall provide 'the coordinates and contact information of the closest ground rescue team' to the Operator.",
+      "relevantStakeholders": [
+        "Operator",
+        "Observed_Humans",
+        "Ground_Rescue_Team"
+      ]
+    }
+  ]
+}

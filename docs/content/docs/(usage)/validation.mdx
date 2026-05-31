@@ -1,0 +1,81 @@
+---
+title: 'Validation'
+description: 'Diagnostic codes, when they trigger, and how to fix them.'
+---
+
+Validation runs in three contexts:
+
+- **LSP**: automatically on every file change (debounced 200 ms, changeable by ENV var)
+- **CLI**: `dsl validate <file>` — prints all diagnostics
+- **Analysis**: `dsl analyze <file>` — runs validation first; aborts on errors
+- **Import / export**: generated or exported documents are validated before output is written
+
+Diagnostic output format:
+
+```
+<line>:<col> - <severity> - <message> - [<code>]
+```
+
+If no issues found: `No validation issues found.`
+
+CLI exit behavior:
+
+| Result         | Exit code | Notes                                         |
+| -------------- | --------- | --------------------------------------------- |
+| No diagnostics | `0`       | Command-specific success output is printed    |
+| Warnings only  | `0`       | Warnings are printed and processing continues |
+| Any errors     | `1`       | Command prints `<command> failed:`            |
+
+## Errors
+
+Errors block analysis. Fix them before running `dsl analyze`.
+
+| Code                                      | When triggered                                                 | How to fix                                           |
+| ----------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------- |
+| `stakeholder.duplicate`                   | Same stakeholder name declared more than once                  | Remove the duplicate declaration                     |
+| `value.duplicate`                         | Same custom value name declared more than once                 | Remove the duplicate declaration                     |
+| `value.angle.out_of_bounds`               | Angle not in `[0, 2π)` i.e. `[0, 6.283...)`                    | Correct the angle value                              |
+| `value.radius.out_of_bounds`              | Radius not in `[0, 1]`                                         | Correct the radius value                             |
+| `value.builtin.conflict`                  | Custom value name matches a built-in (e.g. `privacy`, `order`) | Choose a different name or use the built-in directly |
+| `requirement.duplicate`                   | Same requirement ID declared more than once                    | Remove the duplicate requirement block               |
+| `requirement.context.unknown_stakeholder` | Actor in `when`/`while` clause not declared                    | Declare the stakeholder before the requirement       |
+| `requirement.stakeholder.unknown`         | Name in `stakeholders` list not declared                       | Declare the stakeholder or fix a typo                |
+| `requirement.action.target.unknown`       | Action target (`of <name>`) not a declared stakeholder         | Declare the stakeholder or fix a typo                |
+| `assignment.requirement.unknown`          | Assignment header references undeclared requirement ID         | Declare the requirement or fix a typo                |
+| `assignment.stakeholder.unknown`          | Stakeholder in assignment body not declared                    | Declare the stakeholder or fix a typo                |
+| `assignment.value.unknown`                | Value in assignment body not declared and not a built-in       | Declare the value or fix a typo                      |
+| `assignment.duplicate`                    | Same `(requirement, stakeholder, value)` mapped more than once | Remove the duplicate line                            |
+| `reference.invalid_declaration`           | A reference points only to invalid/erroneous declarations      | Fix the referenced declaration first                 |
+
+## Warnings
+
+Warnings do not block analysis but indicate potential issues.
+
+| Code                            | When triggered                                                             | How to fix                                                      |
+| ------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `stakeholder.unused`            | Stakeholder declared but never referenced in any requirement or assignment | Use the stakeholder or remove the declaration                   |
+| `value.builtin.match`           | Custom value's `(angle, radius)` exactly matches a built-in value          | Use the built-in name directly, or adjust the geometry slightly |
+| `reference.invalid_declaration` | Reference points to a declaration that has warnings                        | Review the referenced declaration                               |
+
+## Examples
+
+**Error example:**
+
+```text
+stakeholder user
+‎
+requirement REQ001
+  when manager requests data_export   // manager not declared, will error here
+  system shall anonymize personal_data of user
+  stakeholders user
+```
+
+**Warning example:**
+
+```text
+stakeholder user, admin   // admin never used, will warn here
+‎
+requirement REQ001
+  system shall anonymize personal_data of user
+  stakeholders user
+```

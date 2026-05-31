@@ -1,0 +1,195 @@
+---
+title: 'Requirements'
+description: 'EARS-structured requirements with context clauses, system actions, stakeholders, and metadata.'
+---
+
+Requirements are the core of the DSL. Each requirement describes what the system shall do, in what context, for which stakeholders, and with what metadata.
+
+The structure follows the **[EARS methodology](https://alistairmavin.com/ears/)** (Easy Approach to Requirements Syntax) — a structured natural-language pattern that makes requirements unambiguous and machine-parseable.
+
+## Header
+
+```text
+requirement <ID>
+```
+
+Where `ID` is any valid identifier. It must be unique across the file.
+
+## Clauses
+
+Requirements have a body of clauses in a prescribed order. Two clauses are **required**; all others are optional.
+
+| Order | Kind              | Keyword        | Syntax                         | Required | Repeatable |
+| ----- | ----------------- | -------------- | ------------------------------ | -------- | ---------- |
+| 1     | State context     | `while`        | `while <actor> <condition>`    | No       | Yes        |
+| 2     | Event trigger     | `when`         | `when <actor> <verb> <target>` | No       | No         |
+| 3     | Unwanted behavior | `if`           | `if <actor> <condition>`       | No       | No         |
+| 4     | Optional feature  | `where`        | `where <feature condition>`    | No       | No         |
+| 5     | **System action** | `system shall` | `system shall <action>`        | **Yes**  | No         |
+| 6     | **Stakeholders**  | `stakeholders` | `stakeholders <ref> [, <ref>]` | **Yes**  | No         |
+| 7     | Priority          | `priority`     | `priority <level>`             | No       | No         |
+| 8     | Retention         | `retention`    | `retention <value>`            | No       | No         |
+| 9     | Access            | `access`       | `access <value>`               | No       | No         |
+| 10    | Traceability      | `linked_to`    | `linked_to <target>`           | No       | Yes        |
+
+<Callout type="warn">
+  Clauses must appear in the order shown. Writing `stakeholders` before `system
+  shall`, for example, is a parse error.
+</Callout>
+
+## Context Clauses
+
+Context clauses (1–4) describe the conditions under which the requirement applies. They correspond to EARS patterns:
+
+| Clause  | EARS Pattern      | Use When                                               |
+| ------- | ----------------- | ------------------------------------------------------ |
+| `while` | State-driven      | The system is in a continuous state                    |
+| `when`  | Event-driven      | A specific event occurs                                |
+| `if`    | Unwanted behavior | An undesired situation must be handled                 |
+| `where` | Optional feature  | The requirement applies only to certain configurations |
+
+### Line Sentence Grammar
+
+Each context clause is written as one line in the requirement body. The
+`system shall` line is written separately after the context clauses.
+
+| Clause  | Sentence Form                                  |
+| ------- | ---------------------------------------------- |
+| `while` | while `<stakeholder>` `<state condition>`      |
+| `when`  | when `<stakeholder>` `<event verb>` `<target>` |
+| `if`    | if `<stakeholder>` `<unwanted condition>`      |
+| `where` | where `<feature condition>`                    |
+
+`while` and `if` require the first token after the keyword to be a declared
+stakeholder. Everything after that is free text. `when` also starts with a
+declared stakeholder, then requires one of the event verbs below and a target
+identifier. `where` accepts free text after the keyword.
+
+```text
+while user is_authenticated
+when user requests data_export
+if user has_no_consent
+where audit_mode enabled
+```
+
+### When Verbs
+
+The `when` clause requires one of these event verbs:
+
+`enters` · `leaves` · `starts` · `stops` · `requests` · `crosses` · `exceeds` · `shows` · `reports`
+
+```text
+when user requests data_export
+when sensor exceeds threshold
+when session starts
+```
+
+## System Action
+
+The `system shall` clause is the core requirement statement. It has **four action kinds**, each with its own set of verbs and syntax:
+
+### Notification
+
+```
+system shall <verb> <target> [using <mechanism>]
+```
+
+Verbs: `notify` · `alert` · `inform` · `warn`
+
+```text
+system shall notify admin using email_service
+system shall alert data_protection_officer
+```
+
+### Monitoring
+
+```
+system shall <verb> <object> of <target> [using <mechanism>]
+```
+
+Verbs: `track` · `monitor` · `observe` · `detect` · `measure` · `record` · `collect` · `capture`
+
+```text
+system shall monitor login_attempts of user using audit_log
+system shall record access_events of admin
+```
+
+### Persistence
+
+```
+system shall <verb> <object> of <target> [using <mechanism>]
+```
+
+Verbs: `log` · `store` · `save` · `archive` · `retain`
+
+```text
+system shall log user_actions of user using database
+system shall archive audit_records of admin
+```
+
+### Restriction
+
+```
+system shall <verb> <object> of <target>
+```
+
+Verbs: `restrict` · `limit` · `anonymize` · `mask` · `delete` · `remove`
+
+```text
+system shall anonymize personal_data of user
+system shall delete stale_records of admin
+```
+
+<Callout type="warn">
+  Restriction actions do not support the `using` mechanism clause.
+</Callout>
+
+## Stakeholders
+
+List the stakeholders affected by this requirement:
+
+```text
+stakeholders user, admin
+stakeholders data_protection_officer
+```
+
+All names must be declared stakeholders. Unknown names produce an error.
+
+## Metadata
+
+| Clause      | Values                                 | Purpose                      |
+| ----------- | -------------------------------------- | ---------------------------- |
+| `priority`  | `low` · `medium` · `high` · `critical` | Importance ranking           |
+| `retention` | any identifier or string               | Data retention specification |
+| `access`    | any identifier or string               | Access control scope         |
+
+```text
+priority high
+retention short_term
+access internal_only
+```
+
+## Traceability
+
+Link a requirement to external artifacts (can appear multiple times):
+
+```text
+linked_to DataPrivacyPolicy
+linked_to GDPR_Article17
+linked_to HazardAnalysis_REQ42
+```
+
+## Full Example
+
+```text
+requirement REQ001
+  while user is_authenticated
+  when user requests data_export
+  system shall anonymize personal_data of user using anonymization_service
+  stakeholders user, data_protection_officer
+  priority high
+  retention 30_days
+  access internal
+  linked_to GDPR_Article17
+  linked_to DataRetentionPolicy
+```

@@ -1,0 +1,115 @@
+---
+title: 'Architecture Overview'
+description: 'Full pipeline diagram, package inventory, and design principles for value-dsl.'
+---
+
+value-dsl is a Go compiler + LSP server. Text enters as a raw string and exits as conflict scores or LSP responses. Every layer is a pure function over its input — no shared mutable state between layers.
+
+## Pipeline
+
+```mermaid
+flowchart LR
+  T[Text] --> Tok["Tokenizer\ngrammar/match.go"]
+  Tok --> P["Parser\nparser/ast_builder.go"]
+  P --> AST["AST\nast/nodes.go"]
+  AST --> SB["Semantic Builder\nsemantic/builder.go"]
+  SB --> SM[SemanticModel]
+  SM --> V["Validation\nvalidation/validator.go"]
+  V --> D[Diagnostics]
+  SM --> CA["Conflict Analysis\nanalysis/conflicts.go"]
+  CA --> CR[ConflictResults]
+  D & CR --> DI["DocIndex\ndocindex/index.go"]
+  DI --> LSP["LSP Server\nlsp/server.go"]
+  DI --> CLI["CLI\ncmd/dsl-cli/"]
+```
+
+## Package Inventory
+
+| Package                   | Purpose                                            | Key exported types                                                         |
+| ------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------- |
+| `internal/grammar`        | DSL grammar definition and runtime compilation     | `Spec`, `CompiledSpec`, `TokenLine`                                        |
+| `internal/parser`         | AST construction from token lines                  | `ParseResult`, `ReferenceOccurrence`                                       |
+| `internal/ast`            | AST node types                                     | `DocumentNode`, `DeclarationNode`, `GenericNode`                           |
+| `internal/semantic`       | Semantic model builder                             | `SemanticModel`, `Build()`                                                 |
+| `internal/model`          | Shared domain types                                | `Requirement`, `Stakeholder`, `Value`, `AssignmentEntry`, `ConflictResult` |
+| `internal/validation`     | Semantic validation and diagnostics                | `Validate()`, `Diagnostic`, `DiagnosticCode`                               |
+| `internal/analysis`       | Analysis pipeline orchestration + conflict scoring | `Run()`, `AnalyzeConflicts()`, `ConflictScore()`                           |
+| `internal/docindex`       | Navigation index for LSP                           | `Document`, `Build()`                                                      |
+| `internal/lsp`            | LSP server and feature handlers                    | `Server`, `NewServer()`                                                    |
+| `internal/formatting`     | DSL formatter                                      | `Format()`, `FormatForWrite()`                                             |
+| `internal/ioformat`       | Import/export interchange formats                  | `Document`, `Codec`, `Encode()`, `Decode()`                                |
+| `internal/values`         | Schwartz value registry and geometry               | `All()`, `Categories()`, `LookupByName()`                                  |
+| `internal/diagnostics`    | Diagnostic code catalog                            | `SpecFor()`                                                                |
+| `internal/sourcepos`      | Source position and UTF-16 conversion              | `Position`, `Range`                                                        |
+| `cmd/dsl-cli`             | CLI entry point                                    | Cobra root command                                                         |
+| `cmd/dsl-lsp`             | LSP server entry point                             | —                                                                          |
+| `cmd/dsl-langspec-export` | Grammar JSON export                                | —                                                                          |
+
+## Design Principles
+
+**Grammar as data.** `internal/grammar/grammar.go` is the single source of truth for the DSL syntax. It is a declarative Go struct — no parsing logic lives there. The grammar is compiled once at startup into lookup tables via `Compile(spec)`.
+
+**Minimal extension points.** Core compiler layers call concrete packages directly. Import/export is the exception: `internal/ioformat` uses a small codec registry so new interchange formats can be added without changing parser, validation, analysis, or CLI flow.
+
+**Position tracking.** All source positions are 1-indexed `(line, column)` `sourcepos.Position` values inside the compiler. The LSP boundary converts to 0-indexed UTF-16 offsets as required by the LSP protocol.
+
+**LSP analysis is cached.** The LSP server caches the last analysis result per document URI + content hash. Cache misses run the full pipeline. Navigation features (go-to-definition, rename) fall back to the last good index when the current parse is invalid.
+
+## Go Module
+
+Go 1.22. Direct dependencies:
+
+| Dependency               | Purpose                 |
+| ------------------------ | ----------------------- |
+| `github.com/spf13/cobra` | CLI command framework   |
+| `github.com/tliron/glsp` | LSP JSON-RPC SDK for Go |
+
+## Section Pages
+
+<Cards>
+  <Card
+    title="Grammar Layer"
+    description="Matcher types, Decl/LineRule structs, and how to extend the grammar."
+    href="/docs/dev/grammar-layer"
+  />
+  <Card
+    title="Tokenizer & Parser"
+    description="Tokenization internals, AST construction, and block grouping."
+    href="/docs/dev/tokenizer-parser"
+  />
+  <Card
+    title="Semantic Model"
+    description="SemanticModel structure, Build() phases, and all model types."
+    href="/docs/dev/semantic-model"
+  />
+  <Card
+    title="Validation Layer"
+    description="Validation pipeline, all 17 codes, and how to add new checks."
+    href="/docs/dev/validation-layer"
+  />
+  <Card
+    title="Conflict Analysis"
+    description="Schwartz circle geometry, scoring formula, and analysis flow."
+    href="/docs/dev/conflict-analysis"
+  />
+  <Card
+    title="Document Index"
+    description="The unified LSP read model and how navigation features use it."
+    href="/docs/dev/document-index"
+  />
+  <Card
+    title="LSP Server"
+    description="Server internals, debounce logic, caching, and feature handler pattern."
+    href="/docs/dev/lsp-server"
+  />
+  <Card
+    title="LSP Benchmarking"
+    description="lspbench setup, config schema, output formats, graphing, and metric interpretation."
+    href="/docs/dev/lsp-benchmarking"
+  />
+  <Card
+    title="Build & Tooling"
+    description="Makefile targets, entry points, tree-sitter pipeline, and CI."
+    href="/docs/dev/build-tooling"
+  />
+</Cards>

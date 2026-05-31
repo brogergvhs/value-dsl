@@ -1,0 +1,89 @@
+---
+title: 'Assignments'
+description: 'Mapping stakeholders to values for a requirement to feed conflict analysis.'
+---
+
+An assignment maps stakeholders to Schwartz values within the context of a specific requirement. These mappings are the input to the conflict analysis pipeline.
+
+## Header
+
+```text
+assignment REQ_ID
+```
+
+`REQ_ID` must match a declared requirement ID. Unknown IDs produce an error.
+
+## Body
+
+An assignment block can have multiple body lines.
+
+Each body line maps one or more stakeholders to one or more values using `->`:
+
+```
+<stakeholder> [, <stakeholder>] -> <value> [, <value>]
+```
+
+All four combinations are valid:
+
+| Form                              | Example                         |
+| --------------------------------- | ------------------------------- |
+| One stakeholder → one value       | `user -> privacy`               |
+| Multiple stakeholders → one value | `user, admin -> order`          |
+| One stakeholder → multiple values | `user -> privacy, autonomy`     |
+| Multiple → multiple               | `user, admin -> privacy, order` |
+
+Example:
+
+```text
+assignment REQ001
+  user -> privacy, autonomy
+  admin -> order, stability
+  data_protection_officer -> justice
+```
+
+All stakeholders and values must be declared (or built-in for values). Unknown names produce errors.
+
+The assignment body can also be "split", e.g. this is also correct and equivalent to the previous example:
+
+```text
+assignment REQ001
+  user -> privacy, autonomy
+‎
+assignment REQ001
+  admin -> order, stability
+  data_protection_officer -> justice
+```
+
+## How Assignments Feed Conflict Analysis
+
+Every unique `(requirement, stakeholder_a, stakeholder_b, value_a, value_b)` combination from the assignment block generates one `ConflictResult`. For a requirement with 2 stakeholders each assigned 2 values, the analysis produces 4 conflict scores (one per value pair).
+
+Scores range from `0.0` (adjacent on the Schwartz circle — no conflict) to `1.0` (directly opposed — maximum conflict).
+
+## Validation
+
+| Condition                                     | Severity | Code                             |
+| --------------------------------------------- | -------- | -------------------------------- |
+| Assignment references undeclared requirement  | Error    | `assignment.requirement.unknown` |
+| Stakeholder in body not declared              | Error    | `assignment.stakeholder.unknown` |
+| Value in body not declared and not built-in   | Error    | `assignment.value.unknown`       |
+| Same `(req, stakeholder, value)` mapped twice | Error    | `assignment.duplicate`           |
+
+## Full Example
+
+```text
+stakeholder user, admin, data_protection_officer
+‎
+requirement REQ001
+  when user requests data_export
+  system shall anonymize personal_data of user
+  stakeholders user, admin
+  priority high
+‎
+assignment REQ001
+  user -> privacy, autonomy
+  admin -> order, stability
+  data_protection_officer -> justice
+```
+
+Running `dsl analyze` on this file produces one conflict score per stakeholder pair × value pair under `REQ001`.

@@ -1,0 +1,15 @@
+{
+  "name": "gleam",
+  "command": ["gleam", "lsp"],
+  "root": "/absolute/path/to/dir",
+  "file": "/absolute/path/to/main/file",
+  "languageId": "gleam",
+  "timeoutMs": 15000,
+  "waitDiagnostics": false,
+  "positions": {
+    "completion": { "line": 0, "character": 0 },
+    "hover": { "line": 0, "character": 0 },
+    "definition": { "line": 0, "character": 0 },
+    "references": { "line": 0, "character": 0 }
+  }
+}

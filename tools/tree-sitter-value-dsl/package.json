@@ -1,0 +1,14 @@
+{
+  "name": "tree-sitter-value-dsl",
+  "private": true,
+  "scripts": {
+    "generate:grammar-fragments": "node scripts/generate-grammar-fragments.mjs",
+    "generate:highlights": "node scripts/generate-highlights.mjs",
+    "generate:locals": "node scripts/generate-locals.mjs",
+    "generate:folds": "node scripts/generate-folds.mjs",
+    "generate:commentstring": "node scripts/generate-commentstring.mjs",
+    "check:drift": "node scripts/check-drift.mjs",
+    "generate": "npm run generate:grammar-fragments && npm run generate:highlights && npm run generate:locals && npm run generate:folds && npm run generate:commentstring && tree-sitter generate",
+    "test": "npm run check:drift && tree-sitter test"
+  }
+}

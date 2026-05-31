@@ -1,0 +1,101 @@
+---
+title: 'Conflict Analysis'
+description: 'Schwartz circle geometry, the scoring formula, analysis flow, and complexity notes.'
+---
+
+Conflict analysis computes a score for every pair of stakeholders under every requirement, based on how far apart their assigned values are on the Schwartz circle.
+
+## Schwartz Circle Geometry
+
+[Values](/docs/language/values) are placed on a unit circle using polar coordinates `(angle, radius)`. Values at angular distance ≈ π are on opposite sides of the circle and conflict most. Values close together share motivational priorities and conflict least.
+
+## ConflictScore
+
+```go
+func ConflictScore(a, b values.Definition) float64
+```
+
+The score combines three geometry terms:
+
+```
+angular  = angularDifference(a.Angle, b.Angle) / π        ∈ [0, 1]
+‎
+x1, y1   = polarToCartesian(a.Angle, a.Radius)
+x2, y2   = polarToCartesian(b.Angle, b.Radius)
+euclidean = √((x1-x2)² + (y1-y2)²) / 2                    ∈ [0, 1]
+‎
+radial   = |a.Radius - b.Radius|                          ∈ [0, 1]
+‎
+score = 0.5·angular + 0.3·euclidean + 0.2·radial          ∈ [0, 1]
+```
+
+**`angularDifference(θ1, θ2)`** — shortest arc distance, handles 2π wraparound:
+
+```
+min(|θ1 - θ2|, 2π - |θ1 - θ2|)
+```
+
+**`polarToCartesian(θ, r)`**:
+
+```
+(r·cos(θ), r·sin(θ))
+```
+
+The angular component dominates (weight 0.5) because position on the Schwartz circle is the primary predictor of value conflict. Euclidean distance (0.3) captures both angular and radial separation. Pure radial difference (0.2) accounts for values in similar directions but different intensities.
+
+The weights are defined as a simple struct for ease of adjustement:
+
+```go
+var defaultWeights = weights{
+	Angular:   0.5,
+	Euclidean: 0.3,
+	Radial:    0.2,
+}
+```
+
+## Analysis Flow
+
+**Step 1 — `buildConflictInputs`**
+
+Collect all valid (non-`Invalid`) stakeholders, requirements, and value definitions. Build a `map[string]values.Definition` keyed by value name, combining built-in values from the registry with custom values from the semantic model.
+
+**Step 2 — `groupAssignmentsForConflictAnalysis`**
+
+For each `AssignmentEntry`, expand the `(stakeholders × values)` product and populate a nested map:
+
+```
+requirement ID → stakeholder name → set of value names
+```
+
+Duplicate `(requirement, stakeholder, value)` triples are deduplicated here.
+
+**Step 3 — `scoreRequirementConflicts`**
+
+For each requirement, enumerate all stakeholder pairs `(i < j)` and all value pairs `(val_a × val_b)`. Each combination produces one `model.ConflictResult`.
+
+**Score cache** — keyed by `valuePair{a, b}` with `a ≤ b` lexicographic ordering:
+
+```go
+if score, ok := cache[valuePair{a, b}]; ok {
+    return score
+}
+
+score := ConflictScore(defs[a], defs[b])
+cache[valuePair{a, b}] = score
+```
+
+This avoids recomputing `ConflictScore` for the same pair of values that appear under multiple requirements.
+
+## Complexity
+
+O(N²·V²) per requirement, where N = number of stakeholders and V = average values per stakeholder.
+The output contract requires one result per unique `(requirement, stakeholder_a, stakeholder_b, value_a, value_b)` combination, so for now I couldn't make it more efficient without a much higher DX/Maintainability overhead.
+Which is (for now at least) i think is unjustified.
+
+## Extension Points
+
+**To change the scoring formula:** edit the weights or add new geometry terms in `ConflictScore()` in `internal/analysis/conflict_score.go`.
+
+**To filter inputs:** modify `groupAssignmentsForConflictAnalysis()` in `internal/analysis/conflicts.go` to exclude certain requirement/stakeholder combinations before scoring.
+
+**To change output ordering:** results are appended in the order they are scored; sort the `[]model.ConflictResult` slice in the caller (`analysis.Run()`).

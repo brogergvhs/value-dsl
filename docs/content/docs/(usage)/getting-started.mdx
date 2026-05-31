@@ -1,0 +1,102 @@
+---
+title: 'Getting Started'
+description: 'Build from source, write your first DSL file, and run the analysis pipeline.'
+---
+
+## Prerequisites
+
+- **Go 1.22+** — required to build the CLI and LSP server
+- An LSP-capable editor (optional, but recommended) — see [LSP setup](/docs/usage/lsp)
+
+## Build from Source
+
+```bash
+# Clone or enter the repository
+make build   # → ./bin/dsl (CLI)
+make lsp     # → ./bin/dsl-lsp (LSP server)
+```
+
+Add `./bin` to your `PATH` or reference the binaries directly.
+
+## Your First DSL File
+
+Create `first.dsl` with this complete example — it uses all four declaration types:
+
+```text
+// Declare the stakeholders involved in the system
+stakeholder user, admin
+‎
+// Declare custom values (optional — 30 built-in Schwartz values are always available)
+value data_sovereignty = 2.04, 0.92   // self_direction category
+value operational_control = 5.03, 0.78 // conformity category
+‎
+// Define a requirement using EARS structure
+requirement REQ001
+  when user requests data_export
+  system shall anonymize personal_data of user
+  stakeholders user, admin
+  priority high
+  linked_to DataPrivacyPolicy
+‎
+// Map stakeholders to their values for conflict analysis
+assignment REQ001
+  user -> data_sovereignty, privacy
+  admin -> operational_control, order
+```
+
+## Validate
+
+```bash
+./bin/dsl validate first.dsl
+```
+
+If there are no issues, you'll see: `No validation issues found.`
+
+Any errors or warnings are printed as `line:column - severity - message - [code]`.
+
+## Analyze for Conflicts
+
+```bash
+./bin/dsl analyze first.dsl
+```
+
+Output lists one conflict entry per stakeholder pair and value pair:
+
+```
+Requirement REQ001:
+  admin (order) vs user (privacy) → conflict score: 0.72
+```
+
+Scores range from `0.0` (no conflict — values are adjacent on the Schwartz circle) to `1.0` (maximum conflict — values are directly opposed).
+
+## Format
+
+```bash
+./bin/dsl format first.dsl         # print canonical form to stdout
+./bin/dsl format -w first.dsl      # write back to file
+```
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Language Reference"
+    description="Full syntax for all 4 declaration types."
+    href="/docs/usage/language"
+  />
+  <Card
+    title="CLI"
+    description="All commands and flags."
+    href="/docs/usage/cli"
+  />
+  <Card
+    title="Import / Export"
+    description="JSON round-trip workflows."
+    href="/docs/usage/import-export"
+  />
+  <Card
+    title="LSP"
+    description="Set up editor integration."
+    href="/docs/usage/lsp"
+  />
+</Cards>

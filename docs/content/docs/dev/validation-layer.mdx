@@ -1,0 +1,140 @@
+---
+title: 'Validation Layer'
+description: 'Validation pipeline internals, vctx context, diagnostic anatomy, and how to add new checks.'
+---
+
+Validation is a pure function over the semantic model. It produces a list of `Diagnostic` values and has no side effects.
+
+## Entry Point
+
+```go
+func Validate(m *semantic.SemanticModel) []Diagnostic
+```
+
+Returns all errors and warnings found. The caller decides how to handle them (display in LSP, print to CLI, abort on error).
+
+## vctx — Validation Context
+
+All check functions receive a shared `*vctx`:
+
+```go
+type vctx struct {
+    model *semantic.SemanticModel
+
+    builtins  map[string]struct{}     // built-in value names
+    declLine  map[declarationRef]int  // first-seen line per declared name
+    declExact map[nameAtLine]struct{} // exact (kind, name, line) for duplicate detection
+}
+```
+
+`declarationRef` is a `(kind DeclarationKind, name string)` pair. `declLine[ref]` returns the first declaration line, or 0 if not declared — used by `hasValue()` and `hasStakeholder()` helpers.
+
+## validateAll() Composition
+
+```go
+func validateAll(ctx *vctx) []Diagnostic {
+    diags := checkStakeholders(ctx)
+    diags = append(diags, checkValues(ctx)...)
+    diags = append(diags, checkRequirements(ctx)...)
+    diags = append(diags, checkAssignments(ctx)...)
+
+    return diags
+}
+```
+
+Each `check*` function is independent. Adding a new check is additive — no existing function needs modification.
+
+## applyDeclarationValidity
+
+After `validateAll` completes, `applyDeclarationValidity(ctx, diags)` iterates all error-severity diagnostics. For each diagnostic that has a `SubjectKind` and `SubjectName`, it marks the matching entry `Invalid = true` in both the slice and the by-name map.
+
+This ensures that downstream consumers (conflict analysis, docindex) skip declarations that failed validation.
+
+## Warnings
+
+Warnings are collected separately in `warnings.go`:
+
+- **`unusedStakeholderWarnings(ctx)`**: finds stakeholders declared but never referenced in any requirement or assignment
+- **`invalidReferenceWarnings(ctx)`**: warns when a reference points only to declarations that are themselves invalid
+
+## Diagnostic Anatomy
+
+```go
+type Diagnostic struct {
+    Line   int
+    Column int
+
+    Severity DiagnosticSeverity // SeverityError | SeverityWarning
+    Code     DiagnosticCode     // string code like "stakeholder.duplicate"
+    Message  string
+    Source   string // "semantic" or "parse"
+
+    SubjectKind grammar.DeclarationKind
+    SubjectName string
+}
+```
+
+`SubjectKind` + `SubjectName` identify which model object the diagnostic is about. Used by `applyDeclarationValidity` to set `Invalid` flags.
+
+## Diagnostic Code Catalog
+
+Every code has a spec in `internal/diagnostics/catalog.go`:
+
+```go
+func SpecFor(code DiagnosticCode) DiagnosticSpec
+```
+
+`DiagnosticSpec` contains:
+
+| Field      | Description                          |
+| ---------- | ------------------------------------ |
+| `Severity` | `SeverityError` or `SeverityWarning` |
+| `Message`  | Human-readable message template      |
+| `Source`   | `"semantic"` or `"parse"`            |
+
+## How to Add a New Diagnostic
+
+1. Add a constant in `internal/validation/validator.go` (or a dedicated file):
+
+   ```go
+   const CodeMyThing DiagnosticCode = "my.thing"
+   ```
+
+2. Add an entry in `internal/diagnostics/catalog.go`:
+
+   ```go
+   CodeMyThing: {
+       Severity: SeverityError,
+       Message:  "description of what went wrong",
+       Source:   "semantic",
+   },
+   ```
+
+3. Write a check function:
+
+   ```go
+   func checkMyThing(ctx *vctx) []Diagnostic {
+       var diags []Diagnostic
+
+       // ... inspect ctx.model ...
+
+       return diags
+   }
+   ```
+
+4. Append the call in `validateAll()`:
+
+   ```go
+   diags = append(diags, checkMyThing(ctx)...)
+   ```
+
+5. Write tests in `internal/validation/validator_test.go` covering both the error case and the happy path.
+
+## Strict Policy
+
+`analysis.enforceStrictPolicy(opts Options, diags []Diagnostic) error` collects failing diagnostics according to the policy:
+
+- `Options.Strict = true` → errors are fatal
+- `Options.StrictConfig.FailOnWarnings = true` → warnings are also fatal
+
+Returns a `*StrictPolicyError` listing the failing diagnostics, which the CLI formats and prints before exiting with code 1.

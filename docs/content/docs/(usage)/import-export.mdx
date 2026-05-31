@@ -1,0 +1,207 @@
+---
+title: 'Import / Export'
+description: 'JSON interchange format, CLI workflows, validation behavior, and extension points.'
+---
+
+The import/export commands convert between DSL source and a format-neutral interchange document. JSON is the first supported format.
+
+```bash
+dsl export <file|-> --format json --output <path>
+dsl import <file|-> --format json --output <path>
+```
+
+Both commands accept `-` as the input path. If `--output` is omitted or set to `-`, the converted document is written to stdout.
+
+## Format Model
+
+The interchange document mirrors the DSL at a practical level:
+
+- stakeholders are stored as names
+- values are stored as names plus optional geometry
+- requirements are stored as IDs plus EARS body lines
+- assignments are stored as requirement-scoped stakeholder/value mappings
+
+Requirements intentionally keep their body as EARS lines. This keeps the DSL grammar as the source of truth and avoids a second JSON-only requirement grammar.
+
+## JSON Shape
+
+```json
+{
+  "stakeholders": ["user", "admin"],
+  "values": [{ "name": "data_sovereignty", "angle": 2.04, "radius": 0.92 }],
+  "requirements": [
+    {
+      "id": "REQ001",
+      "ears": [
+        "when user requests data_export",
+        "system shall anonymize personal_data of user",
+        "stakeholders user, admin",
+        "priority high",
+        "linked_to DataPrivacyPolicy"
+      ]
+    }
+  ],
+  "assignments": [
+    {
+      "requirement": "REQ001",
+      "entries": [
+        {
+          "stakeholders": ["user"],
+          "values": ["data_sovereignty", "privacy"]
+        },
+        {
+          "stakeholders": ["admin"],
+          "values": ["order"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Fields
+
+### Top-level document
+
+| Field          | Type            | Required | Description                                    |
+| -------------- | --------------- | -------- | ---------------------------------------------- |
+| `stakeholders` | `string[]`      | No       | Stakeholder declarations                       |
+| `values`       | `Value[]`       | No       | Custom value declarations                      |
+| `requirements` | `Requirement[]` | No       | Requirements with EARS body lines              |
+| `assignments`  | `Assignment[]`  | No       | Stakeholder-to-value mappings for requirements |
+
+Unknown JSON fields are rejected during import.
+
+### Value
+
+| Field    | Type     | Required | Description                      |
+| -------- | -------- | -------- | -------------------------------- |
+| `name`   | `string` | Yes      | Value name                       |
+| `angle`  | `number` | No       | Schwartz-circle angle in radians |
+| `radius` | `number` | No       | Radius in `[0, 1]`               |
+
+If both `angle` and `radius` are present, import emits:
+
+```text
+value name = angle, radius
+```
+
+If either geometry field is missing, import emits:
+
+```text
+value name
+```
+
+### Requirement
+
+| Field  | Type       | Required | Description                                |
+| ------ | ---------- | -------- | ------------------------------------------ |
+| `id`   | `string`   | Yes      | Requirement ID                             |
+| `ears` | `string[]` | Yes      | Requirement body lines, without the header |
+
+Each `ears` entry must be a valid requirement body line, for example:
+
+```text
+while user is_authenticated
+when user requests data_export
+if user has_consent
+where retention is limited
+system shall anonymize personal_data of user
+stakeholders user, admin
+priority high
+retention '30 days'
+access 'privacy team'
+linked_to DataPrivacyPolicy
+```
+
+### Assignment
+
+| Field         | Type                | Required | Description                                 |
+| ------------- | ------------------- | -------- | ------------------------------------------- |
+| `requirement` | `string`            | Yes      | Requirement ID referenced by the assignment |
+| `entries`     | `AssignmentEntry[]` | Yes      | Body lines under this assignment header     |
+
+### AssignmentEntry
+
+| Field          | Type       | Required | Description                    |
+| -------------- | ---------- | -------- | ------------------------------ |
+| `stakeholders` | `string[]` | Yes      | Left side of the `->` mapping  |
+| `values`       | `string[]` | Yes      | Right side of the `->` mapping |
+
+Import emits each entry as:
+
+```text
+stakeholder_a, stakeholder_b -> value_a, value_b
+```
+
+## Export Behavior
+
+`dsl export` parses and validates the DSL before writing JSON.
+
+```bash
+./bin/dsl export first.dsl --format json --output first.json
+./bin/dsl export first.dsl -f json -o first.json
+./bin/dsl export first.dsl --format json
+```
+
+Diagnostics follow the same severity rules as validation:
+
+- error diagnostics stop export and return a non-zero exit code
+- warning-only diagnostics are printed to stderr and export continues
+
+When output is stdout, warnings still go to stderr so the JSON stream remains valid.
+
+## Import Behavior
+
+`dsl import` reads JSON, generates DSL text, formats it canonically, then validates the generated DSL.
+
+```bash
+./bin/dsl import first.json --format json --output first.dsl
+./bin/dsl import first.json -f json -o first.dsl
+cat first.json | ./bin/dsl import - --format json
+```
+
+Import rejects:
+
+- malformed JSON
+- unknown JSON object fields
+- unsupported formats
+- generated DSL with error diagnostics
+
+Warning-only diagnostics are printed to stderr and the DSL is still written.
+
+## Round Trip
+
+Export a DSL file to JSON, import it back, and validate the result:
+
+```bash
+./bin/dsl export first.dsl --format json --output first.json
+./bin/dsl import first.json --format json --output roundtrip.dsl
+./bin/dsl validate roundtrip.dsl
+```
+
+The imported DSL is canonicalized with the formatter. It may not preserve original comments or blank-line layout, but it preserves the semantic declarations represented by the interchange document.
+
+## Output to Stdout
+
+Both commands can write to stdout:
+
+```bash
+./bin/dsl export first.dsl --format json > first.json
+./bin/dsl import first.json --format json > first.dsl
+```
+
+Use `--output` when you want the command to write the file directly.
+
+## Extending Formats
+
+Import/export uses an internal codec registry. A format implementation only needs to convert between bytes and the shared interchange `Document`.
+
+```go
+type Codec interface {
+    Decode(io.Reader) (Document, error)
+    Encode(io.Writer, Document) error
+}
+```
+
+Registering another format, such as YAML, should not require changes to parsing, validation, semantic modeling, or the CLI command flow. The DSL text remains the source of truth: imports generate DSL and run through the same parser and validator as handwritten files.

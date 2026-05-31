@@ -1,0 +1,15 @@
+{
+  "name": "rust-analyzer",
+  "command": ["rust-analyzer"],
+  "root": "/absolute/path/to/dir",
+  "file": "/absolute/path/to/file",
+  "languageId": "rust",
+  "timeoutMs": 20000,
+  "waitDiagnostics": false,
+  "positions": {
+    "completion": { "line": 0, "character": 0 },
+    "hover": { "line": 0, "character": 0 },
+    "definition": { "line": 0, "character": 0 },
+    "references": { "line": 0, "character": 0 }
+  }
+}

@@ -1,0 +1,3 @@
+stakeholder Worker
+stakeholder Supervisor
+stakeholder SafetyOfficer

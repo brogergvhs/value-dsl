@@ -1,0 +1,98 @@
+---
+title: 'Values'
+description: 'Built-in Schwartz values, the circular geometry model, and declaring custom values.'
+---
+
+Values represent human motivational priorities based on [Schwartz value theory](https://en.wikipedia.org/wiki/Theory_of_Basic_Human_Values). The DSL ships with **30 built-in values** organized on a circular model — the farther apart two values are on the circle, the more they conflict.
+
+## The Schwartz Circle
+
+Values are positioned on a unit circle using polar coordinates `(angle, radius)`. The circle is divided into **10 categories**, each representing a cluster of related motivations:
+
+| Category         | Angle (rad) | Description                                     |
+| ---------------- | ----------- | ----------------------------------------------- |
+| `power`          | 0.00        | social status, control, and authority           |
+| `achievement`    | 0.63        | success, competence, and influence              |
+| `hedonism`       | 1.26        | pleasure, enjoyment, and comfort                |
+| `stimulation`    | 1.88        | novelty, excitement, and challenge              |
+| `self_direction` | 2.51        | autonomy, creativity, and privacy               |
+| `universalism`   | 3.14        | justice, equality, and broad concern for others |
+| `benevolence`    | 3.77        | care, loyalty, and helpfulness                  |
+| `tradition`      | 4.40        | devotion, humility, and respect for customs     |
+| `conformity`     | 5.03        | obedience, discipline, and politeness           |
+| `security`       | 5.65        | safety, stability, and order                    |
+
+Values at opposite ends of the circle (angular distance ≈ π) produce the highest conflict scores. For example, `self_direction` (autonomy, angle ≈ 2.51) and `conformity` (obedience, angle ≈ 5.03) are near-opposites.
+
+## Built-in Values
+
+All 30 built-in values are always available without any declaration:
+
+| Name                  | Category       | Angle | Radius |
+| --------------------- | -------------- | ----- | ------ |
+| `success`             | achievement    | 0.40  | 0.86   |
+| `competence`          | achievement    | 0.48  | 0.84   |
+| `influence`           | achievement    | 0.56  | 0.82   |
+| `pleasure`            | hedonism       | 0.78  | 0.80   |
+| `enjoyment`           | hedonism       | 0.86  | 0.78   |
+| `comfort`             | hedonism       | 0.94  | 0.76   |
+| `excitement`          | stimulation    | 1.33  | 0.86   |
+| `novelty`             | stimulation    | 1.49  | 0.84   |
+| `challenge`           | stimulation    | 1.73  | 0.82   |
+| `privacy`             | self_direction | 2.04  | 0.92   |
+| `autonomy`            | self_direction | 2.20  | 0.90   |
+| `creativity`          | self_direction | 2.36  | 0.88   |
+| `equality`            | universalism   | 2.67  | 0.88   |
+| `justice`             | universalism   | 2.83  | 0.90   |
+| `environmentalism`    | universalism   | 2.99  | 0.86   |
+| `helpfulness`         | benevolence    | 3.30  | 0.82   |
+| `care`                | benevolence    | 3.46  | 0.84   |
+| `loyalty`             | benevolence    | 3.62  | 0.80   |
+| `humility`            | tradition      | 3.93  | 0.74   |
+| `devotion`            | tradition      | 4.09  | 0.72   |
+| `respect_for_customs` | tradition      | 4.25  | 0.70   |
+| `obedience`           | conformity     | 4.56  | 0.78   |
+| `self_discipline`     | conformity     | 4.72  | 0.80   |
+| `politeness`          | conformity     | 4.88  | 0.76   |
+| `safety`              | security       | 5.19  | 0.94   |
+| `stability`           | security       | 5.35  | 0.92   |
+| `order`               | security       | 5.51  | 0.90   |
+| `authority`           | power          | 5.78  | 0.90   |
+| `social_status`       | power          | 5.94  | 0.85   |
+| `wealth`              | power          | 6.10  | 0.88   |
+
+## Custom Values
+
+Declare a custom value with explicit polar coordinates:
+
+```text
+value name = <angle>, <radius>
+```
+
+```text
+// Custom value with geometry
+value data_sovereignty = 2.04, 0.92
+‎
+// Multiple custom values (dense group — no blank line needed)
+value trust = 1.57, 0.85
+value accountability = 3.20, 0.80
+```
+
+The **category** is derived automatically from the angle — the value is assigned to whichever Schwartz category in the bounds of which the angle lays.
+The **category** itself is not used anywhere except UIs (e.g. when using LSP Hover) and is just a conveniece inference for ease of value tracking.
+
+### Geometry Constraints
+
+| Field  | Valid Range                 | Error if violated            |
+| ------ | --------------------------- | ---------------------------- |
+| angle  | `[0, 2π)` → `[0, 6.283...)` | `value.angle.out_of_bounds`  |
+| radius | `[0, 1]`                    | `value.radius.out_of_bounds` |
+
+### Validation Rules
+
+| Condition                                                | Severity | Code                       |
+| -------------------------------------------------------- | -------- | -------------------------- |
+| `angle` and `radius` exactly match a built-in's geometry | Warning  | `value.builtin.match`      |
+| Name matches a built-in value                            | Error    | `value.builtin.conflict`   |
+| Name declared more than once                             | Error    | `value.duplicate`          |
+| Referenced in assignment but not declared or built-in    | Error    | `assignment.value.unknown` |

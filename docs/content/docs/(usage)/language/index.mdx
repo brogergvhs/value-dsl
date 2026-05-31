@@ -1,0 +1,102 @@
+---
+title: 'Language Reference'
+description: 'Syntax overview for all four declaration kinds, identifiers, literals, and file structure.'
+---
+
+A value-dsl file is a flat sequence of declarations. There are **four declaration kinds**, each beginning with a reserved keyword on its own line.
+
+| Keyword       | Purpose                                                                          |
+| ------------- | -------------------------------------------------------------------------------- |
+| `stakeholder` | Declare named actors that participate in requirements and assignments            |
+| `value`       | Declare custom values on the Schwartz circle (30 built-ins are always available) |
+| `requirement` | Define a structured requirement using EARS clauses                               |
+| `assignment`  | Map stakeholders to values for a requirement (feeds conflict analysis)           |
+
+## Syntax Basics
+
+### Identifiers
+
+Identifiers follow the pattern `[a-zA-Z_][a-zA-Z0-9_-]*` — letters, digits, hyphens, and underscores; must start with a letter or underscore.
+
+```
+user          ✓
+admin-portal  ✓
+REQ001        ✓
+_internal     ✓
+2bad          ✗  (starts with digit)
+has space     ✗  (use quoted string)
+```
+
+### Numbers
+
+Floating-point numbers, optionally negative:
+
+```
+1.57
+0.92
+-3.14
+5
+```
+
+### Strings
+
+Multi-word values must be quoted (single or double quotes):
+
+```text
+system shall anonymize "personal user data" of user
+```
+
+### Comments
+
+Line comments start with `//`. They can appear at the end of any line or on their own line:
+
+```text
+stakeholder user  // the end customer
+
+// This is a full-line comment
+requirement REQ001
+```
+
+## In-file Structure
+
+Declarations can appear in any order. The convention is to group related declarations and separate non-dense declarations with a blank line.
+
+**Dense groups** (stakeholder, value) need no blank line between consecutive declarations of the same kind:
+
+```text
+stakeholder user
+stakeholder admin
+stakeholder manager
+```
+
+**Non-dense declarations** (requirement, assignment) should be separated by blank lines for readability.
+
+## Indentetion
+
+Whitespace characters in general are fully ignored and may occure wherever and in any amount without any effect on functionality.
+In these docs we will indent the lines under a respective block for convenience of reading, but remember, it is not mandatory.
+
+## Declaration Pages
+
+<Cards>
+  <Card
+    title="Stakeholders"
+    description="Single and multi-name declarations, dense grouping, and usage contexts."
+    href="/docs/usage/language/stakeholders"
+  />
+  <Card
+    title="Values"
+    description="Schwartz value theory, built-in values, and custom value geometry."
+    href="/docs/usage/language/values"
+  />
+  <Card
+    title="Requirements"
+    description="EARS structure, all 10 clauses, and the 4 action kinds."
+    href="/docs/usage/language/requirements"
+  />
+  <Card
+    title="Assignments"
+    description="Mapping stakeholders to values for conflict analysis."
+    href="/docs/usage/language/assignments"
+  />
+</Cards>

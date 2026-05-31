@@ -1,0 +1,14 @@
+{
+  "name": "gopls",
+  "command": ["gopls", "serve"],
+  "root": "/absolute/path/to/dir",
+  "file": "/absolute/path/to/main/file",
+  "languageId": "go",
+  "timeoutMs": 15000,
+  "positions": {
+    "completion": { "line": 0, "character": 0 },
+    "hover": { "line": 0, "character": 0 },
+    "definition": { "line": 0, "character": 0 },
+    "references": { "line": 0, "character": 0 }
+  }
+}

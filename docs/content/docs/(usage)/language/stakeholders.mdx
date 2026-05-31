@@ -1,0 +1,77 @@
+---
+title: 'Stakeholders'
+description: 'Declaring named actors and referencing them in requirements and assignments.'
+---
+
+A stakeholder is any named actor that participates in a requirement or assignment. Stakeholders must be declared before they can be referenced.
+
+## Syntax
+
+```text
+stakeholder name
+stakeholder name1, name2, name3
+```
+
+A single `stakeholder` line can declare one or multiple names separated by commas.
+
+## Examples
+
+```text
+// Single name
+stakeholder user
+‎
+// Multiple names in one declaration
+stakeholder user, admin, data_protection_officer
+‎
+// Multiple declarations (dense group — no blank line needed)
+stakeholder end_user
+stakeholder system_admin
+stakeholder compliance_officer
+```
+
+## Dense Grouping
+
+Consecutive `stakeholder` declarations do not require blank line separation. All of the following are equivalent in meaning:
+
+```text
+// As separate declarations
+stakeholder user
+stakeholder admin
+‎
+// As one multi-name declaration
+stakeholder user, admin
+```
+
+## Where Stakeholders Appear
+
+Once declared, a stakeholder name can be referenced in four positions:
+
+| Position                     | Syntax                              | Example                          |
+| ---------------------------- | ----------------------------------- | -------------------------------- |
+| `when`/`while` clause actor  | `when <name> <verb> <target>`       | `when user requests data_export` |
+| `system shall` action target | `system shall <verb> ... of <name>` | `system shall notify admin`      |
+| `stakeholders` clause list   | `stakeholders <name> [, <name>]`    | `stakeholders user, admin`       |
+| Assignment left-hand side    | `<name> -> <value>`                 | `user -> privacy`                |
+
+## Validation
+
+| Condition                     | Severity | Code                                                                  |
+| ----------------------------- | -------- | --------------------------------------------------------------------- |
+| Name declared more than once  | Error    | `stakeholder.duplicate`                                               |
+| Declared but never referenced | Warning  | `stakeholder.unused`                                                  |
+| Referenced but not declared   | Error    | `requirement.stakeholder.unknown` or `assignment.stakeholder.unknown` |
+
+## Full Example
+
+```text
+stakeholder user, admin
+‎
+requirement REQ001
+  when user requests data_export
+  system shall anonymize personal_data of user
+  stakeholders user, admin
+‎
+assignment REQ001
+  user -> privacy
+  admin -> order
+```

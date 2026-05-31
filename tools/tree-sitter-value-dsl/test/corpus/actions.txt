@@ -1,0 +1,94 @@
+================================================================================
+Unsupported action verb is still parsed structurally
+================================================================================
+
+stakeholder Worker
+
+requirement R1
+when Worker enters DangerZone
+system shall inspect location of Worker using Camera
+stakeholders Worker
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (stakeholder_decl
+    (identifier))
+  (requirement_decl
+    (identifier)
+    (when_clause
+      (identifier)
+      (when_verb)
+      (identifier))
+    (action_clause
+      (action_expression
+        (targeted_action
+          (identifier)
+          (identifier)
+          (identifier)
+          (identifier))))
+    (stakeholders_clause
+      (identifier))))
+
+================================================================================
+Verb-class mismatch remains syntax-clean
+================================================================================
+
+stakeholder Worker
+
+requirement R1
+when Worker enters DangerZone
+system shall track Worker using Camera
+stakeholders Worker
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (stakeholder_decl
+    (identifier))
+  (requirement_decl
+    (identifier)
+    (when_clause
+      (identifier)
+      (when_verb)
+      (identifier))
+    (action_clause
+      (action_expression
+        (direct_action
+          (identifier)
+          (identifier)
+          (identifier))))
+    (stakeholders_clause
+      (identifier))))
+
+================================================================================
+Restriction with forbidden mechanism remains syntax-clean
+================================================================================
+
+stakeholder Worker
+
+requirement R1
+when Worker enters DangerZone
+system shall anonymize location of Worker using Camera
+stakeholders Worker
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (stakeholder_decl
+    (identifier))
+  (requirement_decl
+    (identifier)
+    (when_clause
+      (identifier)
+      (when_verb)
+      (identifier))
+    (action_clause
+      (action_expression
+        (targeted_action
+          (identifier)
+          (identifier)
+          (identifier)
+          (identifier))))
+    (stakeholders_clause
+      (identifier))))

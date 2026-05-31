@@ -1,0 +1,262 @@
+---
+title: 'LSP Benchmarking'
+description: 'How to configure, run, compare, graph, and interpret language server performance with tools/lspbench.'
+---
+
+`tools/lspbench` is a stdio LSP benchmark harness. It starts a language server process, speaks real JSON-RPC/LSP messages, opens one file, optionally waits for diagnostics, then repeatedly measures configured warm requests such as completion, hover, definition, and references.
+
+Use it for two related tasks:
+
+- Measuring value-dsl LSP startup, first-open diagnostics, and warm request latency
+- Comparing those numbers against other language servers with equivalent benchmark settings
+
+## Setup
+
+Build the value-dsl LSP before benchmarking it:
+
+```bash
+make lsp
+```
+
+Run the bundled value-dsl config:
+
+```bash
+go run ./tools/lspbench -config tools/lspbench/configs/value-dsl.json -runs 5 -count 30
+```
+
+External LSP configs require the corresponding server binary to be installed and available on `PATH`, for example `gopls`, `rust-analyzer`, `gleam`, or `basedpyright-langserver`.
+
+Template configs live in `tools/lspbench/templates`:
+
+| Config                        | (Usual) Server command            |
+| ----------------------------- | --------------------------------- |
+| `value-dsl.json`              | `./bin/dsl-lsp`                   |
+| `gopls.template.json`         | `gopls serve`                     |
+| `rust-analyzer.template.json` | `rust-analyzer`                   |
+| `pyright.template.json`       | `basedpyright-langserver --stdio` |
+| `gleam.template.json`         | `gleam lsp`                       |
+
+The template paths are local examples. Copy or edit a template so `root`, `file`, and cursor positions point at a representative project on your machine.
+
+## Flags
+
+| Flag      | Default  | Meaning                                                         |
+| --------- | -------- | --------------------------------------------------------------- |
+| `-config` | required | Path to one JSON config file or a directory of `*.json` configs |
+| `-runs`   | `1`      | Number of measured full server lifecycle runs                   |
+| `-count`  | `30`     | Number of repeated warm requests per measured lifecycle run     |
+| `-warmup` | `1`      | Number of unmeasured full lifecycle runs before measurement     |
+| `-format` | `text`   | Output format: `text`, `json`, or `csv`                         |
+| `-graph`  | empty    | Write a PNG graph to this path; must end in `.png`              |
+
+Directory mode runs configs in sorted filename order. Text and CSV output stream each config as soon as it finishes. JSON output is collected and printed at the end so the output remains valid JSON.
+
+One failed config does not stop a directory run. The failure is printed in text/CSV output or included in the JSON `errors` array.
+
+## Commands
+
+Single config, text output:
+
+```bash
+go run ./tools/lspbench -config tools/lspbench/configs/value-dsl.json -runs 5 -count 30
+```
+
+Single config, JSON or CSV output:
+
+```bash
+go run ./tools/lspbench -config tools/lspbench/configs/value-dsl.json -runs 5 -count 30 -format json
+go run ./tools/lspbench -config tools/lspbench/configs/value-dsl.json -runs 5 -count 30 -format csv
+```
+
+All configs in a directory:
+
+```bash
+go run ./tools/lspbench -config tools/lspbench/configs -runs 5 -count 30
+```
+
+Generate a PNG graph:
+
+```bash
+go run ./tools/lspbench -config tools/lspbench/configs -runs 5 -count 30 -graph lspbench.png
+```
+
+Force cold-start measurement by disabling benchmark warmup:
+
+```bash
+go run ./tools/lspbench -config tools/lspbench/configs/value-dsl.json -warmup 0 -runs 5 -count 30
+```
+
+## Config Format
+
+| Field             | Required | Meaning                                                                                    |
+| ----------------- | -------- | ------------------------------------------------------------------------------------------ |
+| `name`            | no       | Display name; defaults to the config filename without `.json`                              |
+| `command`         | yes      | LSP command and arguments                                                                  |
+| `env`             | no       | Extra environment variables for the LSP process                                            |
+| `root`            | yes      | Workspace root sent as `rootUri` and `workspaceFolders[0]`                                 |
+| `file`            | yes      | File opened with `textDocument/didOpen`                                                    |
+| `languageId`      | yes      | LSP language id for the opened file                                                        |
+| `timeoutMs`       | no       | Per lifecycle timeout; defaults to `10000`                                                 |
+| `waitDiagnostics` | no       | Defaults to `true`; when `false`, open timing stops after the didOpen notification is sent |
+| `positions`       | no       | Request positions keyed by request name: `completion`, `hover`, `definition`, `references` |
+
+Relative `root` and `file` paths are resolved relative to the config file directory (or absolute if passed an absolute path).
+`line` and `character` are LSP positions: zero-based line numbers and zero-based UTF-16 character offsets.
+
+Cursor positions must point at meaningful code or DSL identifiers for each server. If a position does not make sense for a request, the LSP can return a request-level error. `lspbench` continues and reports a metric such as `references_error_count`; fix the position before trusting that request timing.
+
+For value-dsl, the bundled config sets `VALUE_DSL_LSP_DEBOUNCE=0` so diagnostics from `didOpen` are not delayed by an artificial debounce. Use the normal debounce when measuring editor typing behavior instead of raw server capability.
+
+A Gleam config example:
+
+```json
+{
+  "name": "gleam",
+  "command": ["gleam", "lsp"],
+  "root": "/Users/testUsr/Documents/tools/server",
+  "file": "/Users/testUsr/Documents/tools/server/src/server.gleam",
+  "languageId": "gleam",
+  "timeoutMs": 15000,
+  "waitDiagnostics": false,
+  "positions": {
+    "completion": { "line": 11, "character": 24 },
+    "hover": { "line": 11, "character": 22 },
+    "definition": { "line": 11, "character": 22 },
+    "references": { "line": 11, "character": 22 }
+  }
+}
+```
+
+## Output Formats
+
+Text output is optimized for terminal reading:
+
+```text
+value-dsl runs=5 count=30 warmup=1
+completion_median_ms               0.086 ms
+completion_p95_ms                  0.124 ms
+did_open_to_diagnostics_median_ms  0.543 ms
+spawn_to_diagnostics_median_ms     10.238 ms
+```
+
+JSON output uses either a single result object for one config or a batch object for directory mode:
+
+```json
+{
+  "results": [
+    {
+      "name": "value-dsl",
+      "count": 30,
+      "runs": 5,
+      "warmup": 1,
+      "metrics": [{ "name": "completion_median_ms", "ms": 0.086 }]
+    }
+  ],
+  "errors": []
+}
+```
+
+CSV output has one metric per row:
+
+```csv
+name,runs,count,warmup,metric,ms,n,error
+value-dsl,5,30,1,completion_median_ms,0.086000,0,
+```
+
+Error-count metrics use the `n` column in JSON/CSV and are printed as integer counts in text output.
+
+## Metrics
+
+Startup and initialization:
+
+| Metric                  | Meaning                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `initialize_response_*` | Time from sending `initialize` until the LSP returns the initialize response |
+| `spawn_to_initialize_*` | Time from process start until the initialize response                        |
+
+First-open timing when `waitDiagnostics` is enabled:
+
+| Metric                      | Meaning                                                                                         |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| `did_open_to_diagnostics_*` | Time from `textDocument/didOpen` until the first `textDocument/publishDiagnostics` notification |
+| `spawn_to_diagnostics_*`    | Time from process start until the first diagnostics notification                                |
+
+First-open fallback when `waitDiagnostics` is disabled:
+
+| Metric                         | Meaning                                                           |
+| ------------------------------ | ----------------------------------------------------------------- |
+| `did_open_notification_*`      | Time to send the `didOpen` notification                           |
+| `spawn_to_open_notification_*` | Time from process start until the `didOpen` notification was sent |
+
+Warm request metrics:
+
+| Metric                                       | Meaning                                                  |
+| -------------------------------------------- | -------------------------------------------------------- |
+| `completion_median_ms` / `completion_p95_ms` | Repeated `textDocument/completion` request latency       |
+| `hover_median_ms` / `hover_p95_ms`           | Repeated `textDocument/hover` request latency            |
+| `definition_median_ms` / `definition_p95_ms` | Repeated `textDocument/definition` request latency       |
+| `references_median_ms` / `references_p95_ms` | Repeated `textDocument/references` request latency       |
+| `*_error_count`                              | Number of request-level LSP errors for that request type |
+
+`median` and `p95` are computed over all measured samples across all `-runs`. Warmup samples are not included.
+
+## Graph Output
+
+`-graph lspbench.png` writes a PNG bar chart after the benchmark finishes.
+
+With one config, the graph shows that server's metrics. With a config directory, it groups each metric across all successful configs so relative performance is visible.
+
+Example value-dsl-only graph:
+
+![value-dsl lspbench graph](/lspbench-dsl.png)
+
+Example comparison graph across the configured language servers:
+
+![multi-language lspbench comparison graph](/lspbench-5.png)
+
+The graph uses `log10(1 + ms)` for bar widths. This keeps startup timings and sub-millisecond warm requests visible in one chart. Labels still show the actual millisecond values.
+
+The graph normalizes diagnostics-backed and notification-only open timings into comparable rows:
+
+| Graph row          | Uses diagnostics when available | Uses fallback when diagnostics are disabled |
+| ------------------ | ------------------------------- | ------------------------------------------- |
+| `did_open_ready_*` | `did_open_to_diagnostics_*`     | `did_open_notification_*`                   |
+| `spawn_to_ready_*` | `spawn_to_diagnostics_*`        | `spawn_to_open_notification_*`              |
+
+Values marked `open-only` came from configs with `"waitDiagnostics": false`. They only measure sending `didOpen`; they did not wait for real diagnostics.
+
+## Interpreting Results
+
+Use `spawn_to_initialize_*` and `initialize_response_*` for basic process and initialize cost. These metrics exist for every config.
+
+Use `spawn_to_diagnostics_*` for a real "editor is ready with diagnostics" measurement when the server publishes diagnostics reliably. Use `spawn_to_open_notification_*` only as a fallback for servers where diagnostics are disabled in the config.
+
+Use warm request medians for steady-state responsiveness. Use p95 to spot occasional slow responses.
+
+For fair comparisons:
+
+- Use the same `-runs`, `-count`, and `-warmup`
+- Use representative projects of similar size
+- Pick cursor positions that trigger equivalent semantic work
+- Compare warm request timings separately from startup timings
+- Treat `open-only` graph values as a different readiness level from diagnostics-backed values
+
+`-warmup` defaults to `1` to hide first-launch noise from OS caches and newly built binaries. Use `-warmup 0` when the cold-start path itself is the thing being measured.
+
+## Troubleshooting
+
+`start "server": executable file not found`
+
+The command in the config is not available on `PATH`, or the relative path is wrong for the config root.
+
+`wait diagnostics: context deadline exceeded`
+
+The server did not publish diagnostics before `timeoutMs`. Either increase `timeoutMs`, fix the opened file/project setup, or set `"waitDiagnostics": false` if diagnostics are not part of the benchmark for that server.
+
+`references_error_count` or another request error count is non-zero
+
+The configured cursor position is probably not on an identifier that supports that request. Move the position to a meaningful symbol and rerun.
+
+Very high first run after rebuilding `bin/dsl-lsp`
+
+This can come from OS cold-start effects for a newly built binary. `make lsp` runs `./bin/dsl-lsp --version` once after building to pay that cost during the build step. Use `-warmup 0` only when intentionally measuring that cold-start path.

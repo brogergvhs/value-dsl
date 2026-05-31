@@ -1,0 +1,17 @@
+{
+  "name": "value-dsl",
+  "command": ["./bin/dsl-lsp"],
+  "env": {
+    "VALUE_DSL_LSP_DEBOUNCE": "0"
+  },
+  "root": "/absolute/path/to/dir",
+  "file": "/absolute/path/to/file",
+  "languageId": "value-dsl",
+  "timeoutMs": 10000,
+  "positions": {
+    "completion": { "line": 0, "character": 0 },
+    "hover": { "line": 0, "character": 0 },
+    "definition": { "line": 0, "character": 0 },
+    "references": { "line": 0, "character": 0 }
+  }
+}

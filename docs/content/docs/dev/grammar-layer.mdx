@@ -1,0 +1,122 @@
+---
+title: 'Grammar Layer'
+description: 'Matcher sum types, Decl/LineRule structs, grammar compilation, and extension points.'
+---
+
+`internal/grammar/grammar.go` is the single source of truth for the syntax.
+It is just a declarative data structure.
+All tokenization and parsing logic reads from the compiled output of this file.
+
+## Matcher Types
+
+Matchers describe what a pattern segment captures. They form a sum type:
+
+| Type                     | Purpose                                                     | Example                                                     |
+| ------------------------ | ----------------------------------------------------------- | ----------------------------------------------------------- |
+| `Kw{Word}`               | Keyword token — reserved word, must match exactly           | `Kw{"system"}`, `Kw{"shall"}`                               |
+| `Ident{Name}`            | Captures an identifier into a named field                   | `Ident{"id"}`                                               |
+| `Tok{Kind}`              | Captures a pre-classified token                             | `Tok{Kind: TokKindWhenVerb, Name: "verb"}`                  |
+| `Ref{Name, Kind}`        | Captures an identifier that is a reference to a declaration | `Ref{"target", DeclarationKindStakeholder}`                 |
+| `Enum{Name, Values}`     | Captures one of a fixed string set                          | `Enum{"level", []string{"low","medium","high","critical"}}` |
+| `List{Name, Sep, Inner}` | Captures a separator-delimited list of inner matchers       | `List{"names", ",", []Matcher{...}}`                        |
+| `Opt{Inner}`             | Makes a pattern segment optional                            | `Opt{[]Matcher{Kw{"using"}, Ident{"mechanism"}}}`           |
+| `Str{Name}`              | Captures a possibly-quoted multi-word string                | `Str{"object"}`                                             |
+| `Free{Name}`             | Captures everything remaining on the line as raw text       | `Free{"condition"}`                                         |
+
+## `Decl` Struct
+
+Each declaration kind is described by a `Decl`:
+
+```go
+type Decl struct {
+    Kind    DeclarationKind
+    Keyword string
+    Header  []Matcher // pattern for the header line
+
+    Body       *Block // optional body block descriptor
+    DenseGroup bool   // consecutive same-kind decls need no blank line separator
+}
+```
+
+`DenseGroup: true` is set for `stakeholder` and `value` declarations.
+
+## `LineRule` Struct
+
+Body blocks consist of ordered `LineRule` entries:
+
+```go
+type LineRule struct {
+    Name       string
+    ClauseKind RequirementClauseKind
+    Pattern    []Matcher
+
+    Required   bool
+    Repeatable bool
+    Order      int // enforced ordering position
+
+    Semantics []SemanticBinding // field→role bindings for the semantic builder
+    Expansion ExpansionMode     // how multi-valued captures expand (e.g. cartesian)
+}
+```
+
+`SemanticBinding` maps a captured field name to a `SemanticRole`:
+
+- `SemanticRoleAssignmentSource` — left-hand side of an assignment mapping
+- `SemanticRoleAssignmentTarget` — right-hand side
+
+`ExpansionMode` controls expansion of multi-valued captures; `ExpansionCartesian` produces one semantic object per combination.
+
+## Grammar Compilation
+
+`Compile(spec Spec) CompiledSpec` is called once at package init:
+
+```go
+var Compiled = Compile(Grammar)
+```
+
+`CompiledSpec` builds:
+
+- `DeclsByKeyword map[string]Decl` — fast dispatch from first token
+- `ActionVerbSet map[string]bool` — for token classification
+- `WhenVerbSet map[string]bool` — for token classification
+- `PunctuationTokens []string` — sorted length-descending for longest-match
+
+All tokenization and parsing reads from `Compiled`, never from `Grammar` directly.
+
+## Grammar Export
+
+```go
+ExportJSON() ([]byte, error)
+```
+
+Serializes the grammar to JSON for the tree-sitter grammar generator. Called by `make grammar-export` via `cmd/dsl-langspec-export`. The output is written to `generated/grammar.json` and consumed by `make tree-sitter-sync`.
+
+## How to Add a New Requirement Clause
+
+1. Add a constant in `internal/grammar/types.go`:
+
+   ```go
+   RequirementClauseMyClause RequirementClauseKind = "my_clause"
+   ```
+
+2. Add a `LineRule` to `requirementBody.Lines` in `grammar.go`, specifying keyword, pattern, `Required`, `Repeatable`, and `Order` (must be greater than all preceding rules).
+
+3. Handle the new kind in `semantic/builder.go` in the `buildRequirement()` switch. Extract field values from the `GenericNode`.
+
+4. If the clause adds new data, add a field to `model.Requirement` in `internal/model/model.go`.
+
+5. Regenerate tree-sitter: `make tree-sitter-sync`.
+
+6. Add hover/completion/document-symbols handling in `internal/lsp/` if needed.
+
+7. Write tests in `internal/validation/validator_test.go` and `internal/semantic/builder_test.go`.
+
+## How to Add a New Declaration Kind
+
+1. Add a `DeclarationKind` constant in `internal/grammar/types.go`.
+2. Add a `Decl` entry to `Grammar.Declarations` in `grammar.go`.
+3. Add a builder function in `semantic/builder.go` and call it from `Build()`.
+4. Add validation checks in `internal/validation/validator.go`.
+5. Add to `docindex` in `internal/docindex/build.go`.
+6. Add LSP completion, hover, and document symbol support.
+7. Regenerate tree-sitter: `make tree-sitter-sync`.

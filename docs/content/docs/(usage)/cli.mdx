@@ -1,0 +1,208 @@
+---
+title: 'CLI'
+description: 'CLI commands, flags, output formats, diagnostics, and exit codes.'
+---
+
+Build the CLI with `make build`. The binary is placed at `./bin/dsl`.
+
+```bash
+make build
+```
+
+Add `./bin` to your `PATH` or reference the binary directly.
+
+## Workspace loading
+
+Commands that analyze DSL source load a full workspace when the entry path is any non-standalone `.dsl` file below `main.dsl`.
+
+```bash
+dsl validate project/main.dsl
+dsl analyze project/main.dsl
+dsl analyze project/assignments.dsl
+```
+
+In workspace mode, diagnostics use paths relative to the directory containing `main.dsl`:
+
+```text
+features/equipment.dsl:3:1 - error - requirement stakeholder unknown - [requirement.stakeholder.unknown]
+```
+
+See [Workspaces](/docs/usage/workspace) for file layout and standalone-file rules.
+
+## Reading from stdin
+
+Pass `-` as the file path to read from stdin:
+
+```bash
+cat first.dsl | dsl validate -
+echo "stakeholder user" | dsl parse -
+```
+
+## Diagnostics and Exit Codes
+
+Commands that run validation use the same diagnostic severity rules:
+
+| Diagnostic result | Output prefix            | Exit code |
+| ----------------- | ------------------------ | --------- |
+| No diagnostics    | command-specific success | `0`       |
+| Warnings only     | `<command> warnings:`    | `0`       |
+| Any errors        | `<command> failed:`      | `1`       |
+
+For `export` and `import`, warning diagnostics are written to stderr so stdout remains a valid JSON or DSL stream.
+
+Diagnostic lines use this format:
+
+```text
+line:column - severity - message - [code]
+```
+
+Workspace diagnostics prefix the same diagnostic line with a workspace-relative path:
+
+```text
+path/to/file.dsl:line:column - severity - message - [code]
+```
+
+## `dsl analyze`
+
+Run validation and print stakeholder value conflict scores.
+
+```bash
+dsl analyze <file|->
+```
+
+Output is one entry per stakeholder pair and value pair:
+
+```text
+Requirement REQ001:
+  admin (order) vs user (privacy) -> conflict score: 0.72
+```
+
+Example:
+
+```bash
+./bin/dsl analyze first.dsl
+cat first.dsl | ./bin/dsl analyze -
+```
+
+## `dsl validate`
+
+Run semantic validation and print diagnostics.
+
+```bash
+dsl validate <file|->
+```
+
+If no issues are found:
+
+```text
+No validation issues found.
+```
+
+Warning-only validation succeeds:
+
+```text
+validate warnings:
+2:13 - warning - stakeholder unused - [stakeholder.unused]
+```
+
+Example:
+
+```bash
+./bin/dsl validate first.dsl
+./bin/dsl validate - < first.dsl
+```
+
+## `dsl format`
+
+Print canonical DSL to stdout, or write it back to the file.
+
+```bash
+dsl format <file|->
+dsl format -w <file>
+```
+
+Flags:
+
+| Flag            | Description                                                               |
+| --------------- | ------------------------------------------------------------------------- |
+| `-w`, `--write` | Write the formatted output back to the file instead of printing to stdout |
+
+The formatter refuses `--write` when the input has parse errors.
+
+Example:
+
+```bash
+./bin/dsl format first.dsl
+./bin/dsl format -w first.dsl
+dsl format first.dsl | diff - first.dsl
+```
+
+## `dsl parse`
+
+Parse the file and emit the AST as JSON. This is mainly useful for tooling and debugging.
+
+```bash
+dsl parse <file|->
+```
+
+Example:
+
+```bash
+./bin/dsl parse first.dsl | jq '.Declarations[0]'
+```
+
+## `dsl export`
+
+Export DSL to an interchange format. JSON is currently supported.
+
+```bash
+dsl export <file|-> --format json --output <path>
+```
+
+Flags:
+
+| Flag                  | Default | Description                                    |
+| --------------------- | ------- | ---------------------------------------------- |
+| `-f`, `--format json` | `json`  | Interchange format                             |
+| `-o`, `--output path` | —       | Output file; stdout when omitted or set to `-` |
+
+Examples:
+
+```bash
+./bin/dsl export first.dsl --format json --output first.json
+./bin/dsl export first.dsl -f json > first.json
+```
+
+See [Import / Export](/docs/usage/import-export) for the JSON schema.
+
+## `dsl import`
+
+Import an interchange document and write formatted DSL. JSON is currently supported.
+
+```bash
+dsl import <file|-> --format json --output <path>
+```
+
+Flags:
+
+| Flag                  | Default | Description                                    |
+| --------------------- | ------- | ---------------------------------------------- |
+| `-f`, `--format json` | `json`  | Interchange format                             |
+| `-o`, `--output path` | —       | Output file; stdout when omitted or set to `-` |
+
+Examples:
+
+```bash
+./bin/dsl import first.json --format json --output first.dsl
+cat first.json | ./bin/dsl import - -f json > first.dsl
+```
+
+Import validates the generated DSL. Error diagnostics stop the command; warning-only diagnostics are printed to stderr and the DSL is still written.
+
+## `dsl completion`
+
+The Cobra-generated shell completion command is also available:
+
+```bash
+dsl completion <bash|fish|powershell|zsh>
+```

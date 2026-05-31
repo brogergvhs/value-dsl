@@ -1,0 +1,15 @@
+{
+  "title": "DSL Dev",
+  "pages": [
+    "index",
+    "grammar-layer",
+    "tokenizer-parser",
+    "semantic-model",
+    "validation-layer",
+    "conflict-analysis",
+    "document-index",
+    "lsp-server",
+    "lsp-benchmarking",
+    "build-tooling"
+  ]
+}

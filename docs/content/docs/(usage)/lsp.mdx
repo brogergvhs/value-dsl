@@ -1,0 +1,153 @@
+---
+title: 'LSP'
+description: 'Language Server Protocol integration — capabilities, editor setup, and feature details.'
+---
+
+The LSP server provides IDE integration for `.dsl` files. It runs as a separate process and communicates over stdio using the Language Server Protocol.
+
+```bash
+make lsp       # → ./bin/dsl-lsp
+```
+
+## Workspace awareness
+
+When a `.dsl` file is below a directory containing `main.dsl`, the LSP analyzes it against that workspace. Hover, completion, go to definition, references, rename, diagnostics, and semantic tokens can use declarations from sibling files.
+
+Standalone files, including `*_lone.dsl` and files inside `_lone/`, are analyzed by themselves.
+
+See [Workspaces](/docs/usage/workspace) for the exact loading rules.
+
+## Capabilities
+
+| Feature          | Description                                |
+| ---------------- | ------------------------------------------ |
+| Hover            | Symbol documentation at cursor position    |
+| Completion       | Context-aware keyword and name suggestions |
+| Go to Definition | Jump to a symbol's declaration             |
+| Find References  | List all uses of a symbol                  |
+| Rename           | Rename a symbol across all occurrences     |
+| Document Symbols | Outline panel showing all declarations     |
+| Diagnostics      | Real-time errors and warnings              |
+| Semantic Tokens  | Structured syntax highlighting roles       |
+
+## Editor Setup
+
+### Neovim
+
+Using [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig):
+
+```lua
+local lspconfig = require('lspconfig')
+local configs = require('lspconfig.configs')
+
+if not configs.value_dsl then
+  configs.value_dsl = {
+    default_config = {
+      cmd = { '/path/to/dsl-lsp/executable' },
+      filetypes = { 'dsl' },
+      root_dir = lspconfig.util.find_git_ancestor,
+      settings = {},
+    },
+  }
+end
+
+lspconfig.value_dsl.setup {}
+```
+
+Add filetype detection if needed:
+
+```lua
+vim.filetype.add({ extension = { dsl = 'dsl' } })
+```
+
+### Generic JSON
+
+For editors that accept a JSON LSP configuration:
+
+```json
+{
+  "languageserver": {
+    "value-dsl": {
+      "command": "/path/to/dsl-lsp/executable",
+      "args": [],
+      "filetypes": ["dsl"],
+      "rootPatterns": [".git"]
+    }
+  }
+}
+```
+
+## Feature Details
+
+### Hover
+
+Shows documentation when hovering over a symbol:
+
+| Symbol kind    | Hover content                                                            |
+| -------------- | ------------------------------------------------------------------------ |
+| Built-in value | Category, angle, radius                                                  |
+| Custom value   | Derived category, angle, radius (or "invalid" if geometry is incomplete) |
+| Stakeholder    | Which requirements and assignments reference it                          |
+| Requirement    | Context clauses, action, stakeholders list, metadata, traceability links |
+| Clause keyword | Purpose of the clause and valid values                                   |
+
+### Completion
+
+Context-aware suggestions at any cursor position:
+
+| Context          | Suggestions                                                                |
+| ---------------- | -------------------------------------------------------------------------- |
+| Top-level        | `stakeholder`, `value`, `requirement`, `assignment`                        |
+| Requirement body | Clause keywords, action verbs, declared stakeholder names, priority levels |
+| Assignment body  | Declared stakeholder names, value names (built-in + custom)                |
+
+Completion items for values include their category and geometry as documentation.
+
+### Go to Definition
+
+`textDocument/definition` — jumps to the declaration of the symbol under the cursor. Works for stakeholders, values, and requirements, including declarations in sibling workspace files.
+
+### Find References
+
+`textDocument/references` — lists all locations where the symbol under the cursor is used across the workspace.
+
+### Rename
+
+`textDocument/rename` — renames a symbol and all its references simultaneously.
+
+Rename validates:
+
+- New name must be a valid identifier
+- New name must not be a reserved keyword
+- New name must not conflict with an existing declaration
+
+Validation errors are reported to the editor as a user-visible message.
+
+### Document Symbols
+
+`textDocument/documentSymbol` — populates the editor's outline/symbol panel:
+
+| Symbol                                       | LSP kind |
+| -------------------------------------------- | -------- |
+| Stakeholder declaration                      | Variable |
+| Value declaration                            | Constant |
+| Requirement declaration                      | Object   |
+| Requirement child (clause, action, metadata) | Property |
+
+### Diagnostics
+
+Published automatically on every file change, debounced by 200 ms. The server sends `textDocument/publishDiagnostics` after each analysis run. Diagnostics map directly to the [validation codes](/docs/usage/validation).
+
+### Semantic Tokens
+
+`textDocument/semanticTokens/full` — provides structured token roles for syntax highlighting independent of tree-sitter:
+
+| Token type   | Modifiers        | Meaning                            |
+| ------------ | ---------------- | ---------------------------------- |
+| `type`       | `declaration`    | Stakeholder declaration            |
+| `type`       | —                | Stakeholder reference              |
+| `enumMember` | `declaration`    | Custom value declaration           |
+| `enumMember` | —                | Custom value reference             |
+| `enumMember` | `defaultLibrary` | Built-in value reference           |
+| `function`   | `declaration`    | Requirement/assignment declaration |
+| `function`   | —                | Requirement/assignment reference   |

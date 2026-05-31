@@ -1,0 +1,21 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/config.schema.json",
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Tree-sitter grammar for the value-oriented requirements DSL."
+  },
+  "grammars": [
+    {
+      "name": "value_dsl",
+      "camelcase": "ValueDsl",
+      "title": "Value DSL",
+      "scope": "source.dsl",
+      "path": ".",
+      "file-types": [
+        "dsl"
+      ],
+      "highlights": "queries/highlights.scm"
+    }
+  ]
+}

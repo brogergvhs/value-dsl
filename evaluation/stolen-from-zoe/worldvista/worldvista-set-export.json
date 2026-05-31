@@ -1,0 +1,80 @@
+{
+  "stakeholders": ["Patients", "Product_Owners", "Relatives", "Doctors"],
+  "requirements": [
+    {
+      "id": "wv053",
+      "description": "The System shall determine 'if a user is authorized to sign and order'.",
+      "relevantStakeholders": [
+        "Patients",
+        "Product_Owners",
+        "Doctors",
+        "Relatives"
+      ]
+    },
+    {
+      "id": "wv101",
+      "description": "The System shall log 'access' to 'sensitive records' with the aim of 'enabling a site to follow up on a record accessed by a remote location'.",
+      "relevantStakeholders": ["Patients", "Product_Owners"]
+    },
+    {
+      "id": "wv114",
+      "description": "The System shall display 'patient demographics, allergies, adverse reactions, postings, clinical reminders, current medications, problems and appointments' of a Patient to a Patient and Doctor.",
+      "relevantStakeholders": [
+        "Patients",
+        "Product_Owners",
+        "Relatives",
+        "Doctors"
+      ]
+    },
+    {
+      "id": "wv115",
+      "description": "The System shall assess 'orders' for 'duplicates, drug-drug interactions, and other user criteria'.",
+      "relevantStakeholders": [
+        "Patients",
+        "Relatives",
+        "Product_Owners",
+        "Doctors"
+      ]
+    },
+    {
+      "id": "wv123a",
+      "description": "The System shall collect 'encounter data for workload credit' by the means of 'Ambulatory Care Data Capture project'.",
+      "relevantStakeholders": ["Patients", "Relatives", "Product_Owners"]
+    },
+    {
+      "id": "wv123b",
+      "description": "The System shall collect 'clinically relevant data' with the aim of 'creating reminders and reports' by the means of 'Ambulatory Care Data Capture project'.",
+      "relevantStakeholders": [
+        "Patients",
+        "Relatives",
+        "Product_Owners",
+        "Doctors"
+      ]
+    },
+    {
+      "id": "wv126a",
+      "description": "The System shall produce 'Health Summary, Vitals Cumulative, Nutritional Assessment, Daily Order Summary and Order Summary reports' from 'a Patient's data'.",
+      "relevantStakeholders": ["Doctors", "Relatives", "Patients"]
+    },
+    {
+      "id": "wv126b",
+      "description": "The System shall allow 'customization of Health Summary, Vitals Cumulative, Nutritional Assessment, Daily Order Summary and Order Summary reports'.",
+      "relevantStakeholders": ["Doctors", "Relatives", "Patients"]
+    },
+    {
+      "id": "wv128",
+      "description": "The System shall store 'risk, social and medical factors including tobacco use, alcohol use, drug use, occupational environment, marital status, occupation, religious preference, ethnicity, healthcare surrogate and guardian'.",
+      "relevantStakeholders": [
+        "Patients",
+        "Relatives",
+        "Product_Owners",
+        "Doctors"
+      ]
+    },
+    {
+      "id": "wv137",
+      "description": "The System shall include 'non-Standard Laboratory and Medication orderable files'.",
+      "relevantStakeholders": ["Patients", "Relatives", "Doctors"]
+    }
+  ]
+}

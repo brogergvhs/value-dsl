@@ -1,0 +1,124 @@
+---
+title: 'Document Index'
+description: 'The unified LSP read model — built once per analysis run, queried for every cursor operation.'
+---
+
+`docindex.Document` is the single read model consumed by all LSP feature handlers. It is built after every successful analysis run and cached by the LSP server.
+
+## Purpose
+
+Every LSP feature (hover, go-to-definition, completion, rename, references, document symbols) needs the same information: where is this symbol declared, where is it used, what names exist. The document index pre-computes all of this into O(1)-lookup tables.
+
+## Build
+
+```go
+func Build(
+    ast   *astpkg.DocumentNode,
+    lines []grammar.TokenLine,
+    model *semantic.SemanticModel,
+
+    parseDiags []diagnostic.Diagnostic,
+    diags      []diagnostic.Diagnostic,
+    conflicts  []model.ConflictResult,
+    refs       []parser.ReferenceOccurrence,
+) *Document
+```
+
+Inputs are the raw outputs of each pipeline stage. `Build` populates all internal lookup tables in a single pass.
+
+## Document Structure
+
+```go
+type Document struct {
+    AST   *ast.DocumentNode
+    Lines []grammar.TokenLine
+    Model *semantic.SemanticModel
+
+    ParseDiagnostics []diagnostic.Diagnostic
+    Diagnostics      []diagnostic.Diagnostic
+    Conflicts        []model.ConflictResult
+}
+```
+
+Internal lookup tables (unexported):
+
+| Table         | Key type          | Value type     | Used by                                   |
+| ------------- | ----------------- | -------------- | ----------------------------------------- |
+| `declByKey`   | `symbolKey`       | `Declaration`  | go-to-definition, hover                   |
+| `refsByKey`   | `symbolKey`       | `[]Reference`  | find-references, rename                   |
+| `namesByKind` | `DeclarationKind` | `[]string`     | completion                                |
+| `byLine`      | `int`             | `[]Occurrence` | hover, go-to-definition (position lookup) |
+
+**`symbolKey`**: `(kind grammar.DeclarationKind, name string)` — uniform key for all lookups.
+
+## Core Types
+
+**`Declaration`** — a symbol's declaration location:
+
+```go
+type Declaration struct {
+    Kind  grammar.DeclarationKind
+    Name  string
+    Line  int
+    Range sourcepos.Range
+}
+```
+
+**`Reference`** — a single use of a symbol:
+
+```go
+type Reference struct {
+    Kind  grammar.DeclarationKind
+    Name  string
+    Line  int
+    Range sourcepos.Range
+}
+```
+
+**`Occurrence`** — unified per-position view (used for cursor-based lookup):
+
+```go
+type Occurrence struct {
+    Kind  grammar.DeclarationKind
+    Name  string
+    Range sourcepos.Range
+
+    IsDeclaration bool
+}
+```
+
+## Key Methods
+
+**`OccurrenceAt(pos sourcepos.Position) (Occurrence, bool)`**
+
+Finds the symbol under the cursor. Looks up `byLine[pos.Line]` then finds the occurrence whose `Range` contains `pos.Column`. Used by hover, go-to-definition, references, and rename handlers.
+
+**`LookupDeclaration(kind, name) (Declaration, bool)`**
+
+O(1) lookup via `declByKey`. Returns the declaration location for a known symbol.
+
+**`ReferencesFor(kind, name) []Reference`**
+
+Returns all reference locations for a symbol. Used by find-references and rename.
+
+**`Names(kind) []string`**
+
+Returns all declared names of a given kind. Used by completion to enumerate available stakeholders, values, and requirement IDs.
+
+**`AllDiagnostics() []diagnostic.Diagnostic`**
+
+Merges `ParseDiagnostics` and `Diagnostics` into a single list for LSP diagnostic publishing.
+
+## Navigation Fallback
+
+```go
+func (d *Document) WithNavigationDataFromFallback(fallback *Document) *Document
+```
+
+When a parse fails (file has syntax errors), the resulting document index has no declaration or reference data. This method copies the last-good index's lookup tables into the new document, enabling go-to-definition and rename to continue working while the user is mid-edit.
+
+The fallback is stored in the LSP analysis cache per URI. `GetNavigationFallback(uri)` retrieves the last successfully built document for that file.
+
+## Relationship to the LSP Cache
+
+The LSP server's analysis cache stores `coreanalysis.Result` (which wraps a `*Document`) per `(URI, contentHash)`. Cache lookup avoids re-running the full pipeline on unchanged files. On a cache miss, `analysis.Run()` is called and the result is stored in both the cache and as the new navigation fallback.

@@ -1,0 +1,147 @@
+---
+title: 'Tokenizer & Parser'
+description: 'Tokenization internals, AST construction from token lines, and block grouping.'
+---
+
+The tokenizer and parser convert raw text into a structured AST. The two stages are independent: tokenization produces `TokenLine` values; the parser groups them into declaration blocks and matches against grammar patterns.
+
+## TokenLine
+
+`grammar.TokenLine` holds one source line in three forms:
+
+```go
+type TokenLine struct {
+    Raw     string    // original line (with comments, exact whitespace)
+    Code    string    // comment-stripped content
+    Tokens  []Token   // classified tokens from Code
+}
+```
+
+`Token` fields:
+
+| Field         | Type         | Description                                 |
+| ------------- | ------------ | ------------------------------------------- |
+| `Text`        | `string`     | Token text                                  |
+| `Kind`        | `TokenClass` | Classification                              |
+| `StartColumn` | `int`        | 1-indexed byte column in `Code`             |
+| `EndColumn`   | `int`        | 1-indexed byte column in `Code` (exclusive) |
+
+## Token Classes
+
+| Class                  | Description                                |
+| ---------------------- | ------------------------------------------ |
+| `TokenClassIdent`      | Valid identifier (letter/underscore start) |
+| `TokenClassNumber`     | Floating-point number literal              |
+| `TokenClassString`     | Quoted string literal (`"..."` or `'...'`) |
+| `TokenClassWhenVerb`   | One of the `when` event verbs              |
+| `TokenClassActionVerb` | One of the `system shall` action verbs     |
+| `TokenClassUnknown`    | Anything that doesn't match the above      |
+
+## Tokenization
+
+`TokenizeSource(text string) []TokenLine` splits text on newlines and calls the character-level scanner per line.
+
+**`tokenizeRawLine` scan order:**
+
+1. Skip whitespace
+2. `//` → mark comment start; stop collecting tokens; remainder becomes `Code` boundary
+3. `"` or `'` → scan to closing quote (odd-backslash rule for escape detection)
+4. Punctuation → longest-match against `Compiled.PunctuationTokens` (pre-sorted length-descending)
+5. Otherwise → accumulate until whitespace or punctuation, then classify via `classifyToken`
+
+**`classifyToken(text)`** checks in order:
+
+1. `Compiled.ActionVerbSet` → `TokenClassActionVerb`
+2. `Compiled.WhenVerbSet` → `TokenClassWhenVerb`
+3. Number pattern `[-]?[0-9]+(\.[0-9]+)?` (def. in Grammar) → `TokenClassNumber`
+4. Identifier pattern `[a-zA-Z_][a-zA-Z0-9_-]*` (def. in Grammar) → `TokenClassIdent`
+5. Otherwise → `TokenClassUnknown`
+
+## VisibleOffset
+
+```go
+func (tl TokenLine) VisibleOffset(byteOffset int) (codeOffset int, inComment bool)
+```
+
+Maps a byte position in `Raw` to a position in `Code`, and detects whether the position falls inside a comment. Used by LSP hover to reject cursor positions in comments.
+
+## Parser Entry Point
+
+```go
+func Parse(text string) ParseResult
+```
+
+`ParseResult` contains:
+
+| Field         | Type                      | Description                         |
+| ------------- | ------------------------- | ----------------------------------- |
+| `AST`         | `*ast.DocumentNode`       | Full document tree                  |
+| `Lines`       | `[]grammar.TokenLine`     | All tokenized lines                 |
+| `References`  | `[]ReferenceOccurrence`   | All reference positions in the file |
+| `Diagnostics` | `[]diagnostic.Diagnostic` | Parse-level errors                  |
+
+## Block Grouping
+
+`parseBlocksFromLines` groups `TokenLine` values into declaration blocks:
+
+- A new block starts when a line's first token matches a known declaration keyword (from `Compiled.DeclsByKeyword`)
+- Lines before any keyword are ignored (for current block) as preamble
+
+## Pattern Matching
+
+**`MatchDeclaration(decl, tokens)`** and **`MatchBody(block, lines)`** walk `captureMatchers()` recursively against the token list, producing a `MatchResult`:
+
+```go
+type MatchResult struct {
+    Fields      map[string][]FieldValue // named captures
+    Diagnostics []MatchDiagnostic       // structural errors
+
+    Remainder []Token // unconsumed tokens
+}
+```
+
+**`FieldValue`** fields:
+
+| Field     | Description                                                 |
+| --------- | ----------------------------------------------------------- |
+| `Text`    | Captured text                                               |
+| `Range`   | Source range (line, start column, end column)               |
+| `RefKind` | Declaration kind if this is a reference                     |
+| `HasRef`  | True if this field is a reference (feeds `References` list) |
+
+## AST Node Types
+
+`genericNodeFromMatch` converts a `MatchResult` into an `ast.GenericNode`:
+
+```go
+type GenericNode struct {
+    Kind  string
+    Line  int
+    Range sourcepos.Range
+
+    Fields map[string][]FieldValue
+}
+```
+
+Meta-fields stored in `Fields`:
+
+- `_keyword` — the declaration keyword token
+- `_extra` — tokens that didn't match any pattern position
+- `_raw` — the raw line text (for formatter preservation)
+
+**`MalformedLineNode`**: lines inside a body block that don't satisfy any `LineRule` are stored as malformed nodes. The formatter preserves their raw text; the semantic layer ignores them.
+
+## Body Structure Validation
+
+`BodyStructureDiagnostics()` checks (after matching):
+
+- Required clauses are present
+- Non-repeatable clauses appear at most once
+- Ordering constraints are satisfied (clause at position N must not appear before all position < N clauses)
+
+## Parse vs Semantic Diagnostics
+
+| Layer    | What it checks              | Examples                                               |
+| -------- | --------------------------- | ------------------------------------------------------ |
+| Parser   | Structural/syntactic issues | Missing required clause, unknown verb, malformed token |
+| Semantic | Cross-reference issues      | Undeclared stakeholder, duplicate ID, unknown value    |

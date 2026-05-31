@@ -1,0 +1,147 @@
+{
+  "stakeholders": [
+    "Patient",
+    "Caregiver",
+    "Relative",
+    "Doctor",
+    "Driver",
+    "Pedestrian",
+    "System_Administrator",
+    "Meeting_Participant",
+    "Vendor",
+    "GMCB_Staff",
+    "User"
+  ],
+  "requirements": [
+    {
+      "id": "ACTIVAGE0",
+      "description": "The System shall measure 'the commitment to the exercise routine' of the Patient.",
+      "relevantStakeholders": ["Patient", "Caregiver", "Relative", "Doctor"]
+    },
+    {
+      "id": "ACTIVAGE1",
+      "description": "The System shall record 'blood pressure' of the Patient.",
+      "relevantStakeholders": ["Patient", "Caregiver", "Relative", "Doctor"]
+    },
+    {
+      "id": "ACTIVAGE2",
+      "description": "The System shall monitor 'the social activities (outdoor activities, etc.)' of the Patient.",
+      "relevantStakeholders": ["Patient", "Caregiver", "Relative", "Doctor"]
+    },
+    {
+      "id": "ACTIVAGE3_1",
+      "description": "The System shall monitor 'factors relating to falls, gait, speed etc.' of the Patient.",
+      "relevantStakeholders": ["Patient", "Caregiver", "Relative", "Doctor"]
+    },
+    {
+      "id": "ACTIVAGE4",
+      "description": "The System shall detect 'abnormal activities and unusual situation'.",
+      "relevantStakeholders": ["Patient", "Caregiver", "Relative", "Doctor"]
+    },
+    {
+      "id": "ACTIVAGE5",
+      "description": "The System shall obtain 'all information related to a car (position, speed, direction)'.",
+      "relevantStakeholders": ["Patient", "Caregiver", "Relative", "Doctor"]
+    },
+    {
+      "id": "ACTIVAGE6",
+      "description": "The System shall alert the Caregiver and Relative of 'an anomaly occurring' of the Patient every 'single' night.",
+      "relevantStakeholders": ["Patient", "Caregiver", "Relative", "Doctor"]
+    },
+    {
+      "id": "ACTIVAGE7",
+      "description": "The System shall track 'the number of steps' of the Patient every 'single' day.",
+      "relevantStakeholders": ["Patient", "Caregiver", "Relative", "Doctor"]
+    },
+    {
+      "id": "ACTIVAGE8",
+      "description": "The System shall collect 'information about which users are attending some events/activities' at the 'home' of the Patient.",
+      "relevantStakeholders": ["Patient", "Caregiver", "Relative", "Doctor"]
+    },
+    {
+      "id": "ACTIVAGE9",
+      "description": "The System shall record 'weight' of the Patient.",
+      "relevantStakeholders": ["Patient", "Caregiver", "Relative", "Doctor"]
+    },
+    {
+      "id": "ACTIVAGE10",
+      "description": "The System shall record 'speech' of the Patient.",
+      "relevantStakeholders": ["Patient", "Caregiver", "Relative", "Doctor"]
+    },
+    {
+      "id": "ACTIVAGE11",
+      "description": "The System shall include 'an air quality control device'.",
+      "relevantStakeholders": ["Patient", "Caregiver", "Relative", "Doctor"]
+    },
+    {
+      "id": "ACTIVAGE12_1",
+      "description": "The System shall record 'the amount of water drank' of the Patient.",
+      "relevantStakeholders": ["Patient", "Caregiver", "Relative", "Doctor"]
+    },
+    {
+      "id": "ACTIVAGE12_2",
+      "description": "If the Patient 'does not drink enough water', the System shall inform the Patient to 'drink more water'.",
+      "relevantStakeholders": ["Patient", "Caregiver", "Relative", "Doctor"]
+    },
+    {
+      "id": "MobSTr0",
+      "description": "The System shall detect 'all obstacles'.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "MobSTr1",
+      "description": "The System shall identify 'pedestrians, cars, trucks, busses, motorbikes, bicycles, riders, traffic lights, traffic signs'.",
+      "relevantStakeholders": ["Driver", "Pedestrian"]
+    },
+    {
+      "id": "MobSTr0_1",
+      "description": "The System shall detect 'all obstacles' by the means of 'more than one sensor'.",
+      "relevantStakeholders": ["Driver"]
+    },
+    {
+      "id": "PROMISE0",
+      "description": "The System shall provide 'GUI based Monitoring Services' to a System_Administrator with the aim of 'allowing the System_Administrator to monitor message exchanges'.",
+      "relevantStakeholders": ["System_Administrator"]
+    },
+    {
+      "id": "PROMISE1",
+      "description": "If 'no location is available or feasible for the meeting', the Meeting_Scheduler_System shall propose 'a virtual meeting for a given time slot' to the Meeting_Participant.",
+      "relevantStakeholders": ["Meeting_Participant"]
+    },
+    {
+      "id": "VHCURES0_1",
+      "description": "The Vendor shall provide 'status reports about data submission and conformance to GMCBs specifications' to the GMCB_Staff at a minimum of every 'single' month with the aim of 'supporting GMCB oversight of non-compliant data submitters'.",
+      "relevantStakeholders": ["GMCB_Staff", "Vendor"]
+    },
+    {
+      "id": "VHCURES0_2",
+      "description": "The Vendor shall provide 'status reports about data submission and conformance to GMCBs specifications' to the GMCB_Staff upon request.",
+      "relevantStakeholders": ["GMCB_Staff", "Vendor"]
+    },
+    {
+      "id": "VHCURES0_3",
+      "description": "The Vendor shall provide 'sample of what fields/content types that would be provided as part of these reports' to the GMCB_Staff.",
+      "relevantStakeholders": ["GMCB_Staff", "Vendor"]
+    },
+    {
+      "id": "VHCURES2",
+      "description": "The Vendor shall provide 'status reports about data submission and conformance to specifications' to the GMCB_Staff every 'single' month with the aim of 'supporting GMCB oversight of non-compliant data submitters'.",
+      "relevantStakeholders": ["GMCB_Staff", "Vendor"]
+    },
+    {
+      "id": "VHCURES3",
+      "description": "The System shall log 'unsuccessful login attempts'.",
+      "relevantStakeholders": ["Vendor", "GMCB_Staff"]
+    },
+    {
+      "id": "WHO0",
+      "description": "The System shall log 'system logins and logouts'.",
+      "relevantStakeholders": ["User"]
+    },
+    {
+      "id": "WHO1",
+      "description": "The System shall record 'all authentication violations'.",
+      "relevantStakeholders": ["User"]
+    }
+  ]
+}

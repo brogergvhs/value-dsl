@@ -1,0 +1,86 @@
+---
+title: 'Workspaces'
+description: 'How main.dsl, sibling files, and standalone _lone files are loaded by the CLI and LSP.'
+---
+
+A workspace is a directory tree rooted at the outermost `main.dsl` file. It lets you split a model across multiple `.dsl` files while validating and analyzing them as one source.
+
+## Example Layout
+
+```text
+project/
+├── main.dsl
+├── stakeholders.dsl
+├── assignments.dsl
+├── features/
+│   └── equipment.dsl
+├── values/
+│   └── preferences.dsl
+├── case_lone.dsl
+└── _lone/
+    └── isolated.dsl
+```
+
+When any non-standalone `.dsl` file below `main.dsl` is the entry point, the workspace loader includes every `.dsl` file below the directory that contains the outermost `main.dsl`, except standalone files.
+
+If a subdirectory also contains a `main.dsl`, it does not start an isolated nested workspace. The outermost `main.dsl` remains the workspace root, and the nested `main.dsl` is loaded as a normal `.dsl` file.
+
+Workspace scanning ignores non-`.dsl` files.
+
+Standalone DSL files are:
+
+| File or directory     | Behavior             |
+| --------------------- | -------------------- |
+| `*_lone.dsl`          | Loaded by itself     |
+| files inside `_lone/` | Loaded by themselves |
+
+## CLI behavior
+
+Workspace loading is enabled when the CLI entry path is any non-standalone `.dsl` file below `main.dsl`.
+
+```bash
+dsl validate project/main.dsl
+dsl analyze project/main.dsl
+dsl analyze project/assignments.dsl
+dsl validate project/features/equipment.dsl
+```
+
+If the entry path is a sibling file, a nested file, or a nested `main.dsl`, the CLI still uses the outermost `main.dsl` as the workspace root.
+
+The CLI analyzes the combined workspace text, but diagnostics are reported with paths relative to the directory that contains `main.dsl`:
+
+```text
+features/equipment.dsl:3:1 - error - requirement stakeholder unknown - [requirement.stakeholder.unknown]
+assignments.dsl:9:1 - warning - reference resolves only to invalid declarations - [reference.invalid_declaration]
+```
+
+Running the CLI on a file outside a workspace keeps that file standalone:
+
+```bash
+dsl validate scratch.dsl
+```
+
+Use `_lone/` or `*_lone.dsl` when a file inside a workspace directory should be analyzed by itself.
+
+## LSP behavior
+
+The LSP treats any non-standalone `.dsl` file below a directory containing `main.dsl` as part of the outermost workspace.
+
+This means editor features work across files:
+
+| Feature          | Workspace behavior                                              |
+| ---------------- | --------------------------------------------------------------- |
+| Diagnostics      | Validate the open file against the workspace                    |
+| Hover            | Resolve declarations from sibling files                         |
+| Go to Definition | Jump to the declaration file                                    |
+| Find References  | Return locations across workspace files                         |
+| Rename           | Produce edits grouped by target file                            |
+| Semantic Tokens  | Highlight symbols in the open file using workspace declarations |
+
+Unsaved editor text is used for the open file, while sibling files are read from disk.
+
+## Ordering
+
+The entry file is analyzed first. The remaining workspace files are sorted by path before they are appended to the combined source.
+
+This keeps diagnostics and analysis deterministic while ensuring the opened file keeps local line numbers in the LSP.

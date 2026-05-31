@@ -1,0 +1,37 @@
+=================================
+Standalone and inline comments
+=================================
+
+// Stakeholders
+stakeholder Worker // primary actor
+
+// Requirement note
+requirement R1 // important requirement
+when Worker enters DangerousArea // event trigger
+system shall notify Worker // alert the actor
+stakeholders Worker
+
+---
+
+(source_file
+  (comment)
+  (stakeholder_decl
+    names: (identifier))
+  (comment)
+  (comment)
+  (requirement_decl
+    id: (identifier)
+    (comment)
+    when_clause: (when_clause
+      actor: (identifier)
+      verb: (when_verb)
+      target: (identifier))
+    (comment)
+    action_clause: (action_clause
+      action: (action_expression
+        (direct_action
+          verb: (identifier)
+          target: (identifier))))
+    (comment)
+    stakeholders_clause: (stakeholders_clause
+      actors: (identifier))))
