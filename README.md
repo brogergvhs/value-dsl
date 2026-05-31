@@ -32,22 +32,38 @@ For a combined binary literally named `dsl`, run `make build-full FULL_BIN=./bin
 Run the CLI against the included example:
 
 ```bash
-./bin/dsl validate examples/basic.dsl
-./bin/dsl analyze examples/basic.dsl
-./bin/dsl format examples/basic.dsl
+./bin/dsl validate examples/dsl/01_minimal_valid.dsl
+./bin/dsl analyze examples/dsl/01_minimal_valid.dsl
+./bin/dsl format examples/dsl/01_minimal_valid.dsl
 ```
 
 Or use `go run` while developing:
 
 ```bash
-go run ./cmd/dsl-cli validate examples/basic.dsl
-go run ./cmd/dsl-cli analyze examples/basic.dsl
+go run ./cmd/dsl-cli validate examples/dsl/01_minimal_valid.dsl
+go run ./cmd/dsl-cli analyze examples/dsl/01_minimal_valid.dsl
 ```
 
 Run the test suite:
 
 ```bash
 make test
+```
+
+Build and use the Docker image:
+
+```bash
+make docker-build
+make docker-validate FILE=examples/dsl/01_minimal_valid.dsl
+make docker-analyze FILE=examples/dsl/01_minimal_valid.dsl
+```
+
+The image contains `/usr/local/bin/dsl`, `/usr/local/bin/dsl-full`, and
+`/usr/local/bin/dsl-lsp`. For LSP-over-stdio usage, keep stdin open and mount
+the workspace:
+
+```bash
+docker run --rm -i -v "$PWD:/workspace" -w /workspace value-dsl:local /usr/local/bin/dsl-lsp
 ```
 
 ## A Minimal DSL File
@@ -74,6 +90,7 @@ make help              # list available targets
 make build             # build standalone ./bin/dsl
 make build-full        # build combined ./bin/dsl-full
 make lsp               # build ./bin/dsl-lsp
+make docker-build      # build value-dsl:local Docker image
 make test              # run Go tests
 make parse FILE=...    # parse a DSL file
 make validate FILE=... # validate a DSL file

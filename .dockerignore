@@ -1,0 +1,10 @@
+.git
+.next
+.source
+bin
+coverage.out
+docs/.next
+docs/.source
+docs/node_modules
+node_modules
+tmp

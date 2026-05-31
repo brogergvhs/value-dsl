@@ -10,6 +10,7 @@
     "document-index",
     "lsp-server",
     "lsp-benchmarking",
+    "docker",
     "build-tooling"
   ]
 }

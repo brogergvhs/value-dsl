@@ -32,6 +32,10 @@ All binary build targets use `-trimpath -ldflags "-s -w"` by default to remove l
 | `parse`               | Run `dsl parse` on `FILE=`                                        |
 | `validate`            | Run `dsl validate` on `FILE=`                                     |
 | `analyze`             | Run `dsl analyze` on `FILE=`                                      |
+| `docker-build`        | Build the Docker image as `DOCKER_IMAGE`                          |
+| `docker-validate`     | Run `dsl validate` inside Docker against mounted `FILE=`          |
+| `docker-analyze`      | Run `dsl analyze` inside Docker against mounted `FILE=`           |
+| `docker-lsp`          | Run `dsl-lsp` inside Docker over stdio                            |
 | `grammar-export`      | Export `generated/grammar.json` from Go grammar source            |
 | `tree-sitter-sync`    | Regenerate `grammar.js` and queries from `generated/grammar.json` |
 | `tree-sitter-test`    | Run drift check + tree-sitter corpus tests                        |

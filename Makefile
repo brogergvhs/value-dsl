@@ -14,37 +14,41 @@ LSP_BIN := ./bin/dsl-lsp
 TS_PARSER_DIR ?= $(HOME)/.local/share/nvim/lazy/nvim-treesitter/parser
 TS_PARSER_SO  := $(TS_PARSER_DIR)/value_dsl.so
 
-FILE ?= examples/basic.dsl
-OUTPUT ?= conflicts.csv
-FORMAT ?= csv
+FILE ?= examples/dsl/01_minimal_valid.dsl
+DOCKER ?= docker
+DOCKER_IMAGE ?= value-dsl:local
 
-.PHONY: help deps build build-full lsp run run-full test test-full fmt check clean parse validate analyze analyze-stdin grammar-export langspec-export tree-sitter-sync tree-sitter-test tree-sitter tree-sitter-install full
+.PHONY: help deps build build-full lsp run run-full test test-full fmt check clean parse validate analyze analyze-stdin docker-build docker-validate docker-analyze docker-lsp grammar-export langspec-export tree-sitter-sync tree-sitter-test tree-sitter tree-sitter-install full
 
 help:
-	@echo "Usage: make <target> [FILE=examples/basic.dsl] [OUTPUT=conflicts.csv] [FORMAT=csv]"
+	@echo "Usage: make <target> [FILE=examples/dsl/01_minimal_valid.dsl]"
 	@echo ""
 	@echo "Targets:"
-	@echo "  deps          Download Go module dependencies"
-	@echo "  build         Build standalone CLI binary to $(BIN)"
-	@echo "  build-full    Build combined CLI+LSP binary to $(FULL_BIN)"
-	@echo "  lsp           Build LSP binary to $(LSP_BIN)"
-	@echo "  run           Run CLI root command (shows help)"
-	@echo "  run-full      Run combined CLI+LSP root command (shows help)"
-	@echo "  test          Run all tests"
-	@echo "  test-full     Run combined CLI+LSP tests"
-	@echo "  fmt           Format Go code"
-	@echo "  check         Check Go formatting without modifying files (for CI)"
-	@echo "  clean         Remove built artifacts"
-	@echo "  parse         Parse DSL file"
-	@echo "  validate      Validate DSL file"
-	@echo "  analyze       Analyze DSL file"
-	@echo "  analyze-stdin Analyze DSL from stdin: make analyze-stdin FILE=examples/basic.dsl"
-	@echo "  grammar-export  Write generated/grammar.json from the current DSL grammar"
-	@echo "  tree-sitter-sync Refresh generated/grammar.json, queries, and parser artifacts"
-	@echo "  tree-sitter-test Run Tree-sitter drift checks and corpus tests"
-	@echo "  tree-sitter-install Compile parser.so into TS_PARSER_DIR ($(TS_PARSER_DIR))"
-	@echo "  tree-sitter   Run the full Tree-sitter generation, verification, and install pipeline"
-	@echo "  full          Build CLI, LSP, regenerate Tree-sitter artifacts, and run tests"
+	@echo "  deps                 Download Go module dependencies"
+	@echo "  build                Build standalone CLI binary to $(BIN)"
+	@echo "  build-full           Build combined CLI+LSP binary to $(FULL_BIN)"
+	@echo "  lsp                  Build LSP binary to $(LSP_BIN)"
+	@echo "  run                  Run CLI root command (shows help)"
+	@echo "  run-full             Run combined CLI+LSP root command (shows help)"
+	@echo "  test                 Run all tests"
+	@echo "  test-full            Run combined CLI+LSP tests"
+	@echo "  fmt                  Format Go code"
+	@echo "  check                Check Go formatting without modifying files (for CI)"
+	@echo "  clean                Remove built artifacts"
+	@echo "  parse                Parse DSL file"
+	@echo "  validate             Validate DSL file"
+	@echo "  analyze              Analyze DSL file"
+	@echo "  analyze-stdin        Analyze DSL from stdin: make analyze-stdin FILE=examples/dsl/01_minimal_valid.dsl"
+	@echo "  docker-build         Build Docker image ($(DOCKER_IMAGE))"
+	@echo "  docker-validate      Validate DSL file through Docker"
+	@echo "  docker-analyze       Analyze DSL file through Docker"
+	@echo "  docker-lsp           Start standalone LSP through Docker over stdio"
+	@echo "  grammar-export       Write generated/grammar.json from the current DSL grammar"
+	@echo "  tree-sitter-sync     Refresh generated/grammar.json, queries, and parser artifacts"
+	@echo "  tree-sitter-test     Run Tree-sitter drift checks and corpus tests"
+	@echo "  tree-sitter-install  Compile parser.so into TS_PARSER_DIR ($(TS_PARSER_DIR))"
+	@echo "  tree-sitter          Run the full Tree-sitter generation, verification, and install pipeline"
+	@echo "  full                 Build CLI, LSP, regenerate Tree-sitter artifacts, and run tests"
 
 deps:
 	go mod download
@@ -96,6 +100,18 @@ analyze:
 
 analyze-stdin:
 	cat "$(FILE)" | go run $(CMD) analyze -
+
+docker-build:
+	$(DOCKER) build -t $(DOCKER_IMAGE) .
+
+docker-validate:
+	$(DOCKER) run --rm -v "$(CURDIR):/workspace" -w /workspace $(DOCKER_IMAGE) /usr/local/bin/dsl validate "$(FILE)"
+
+docker-analyze:
+	$(DOCKER) run --rm -v "$(CURDIR):/workspace" -w /workspace $(DOCKER_IMAGE) /usr/local/bin/dsl analyze "$(FILE)"
+
+docker-lsp:
+	$(DOCKER) run --rm -i -v "$(CURDIR):/workspace" -w /workspace $(DOCKER_IMAGE) /usr/local/bin/dsl-lsp
 
 grammar-export:
 	go run ./cmd/dsl-langspec-export

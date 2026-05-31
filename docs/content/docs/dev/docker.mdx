@@ -1,0 +1,69 @@
+---
+title: 'Docker'
+description: 'Build and run the DSL CLI and LSP server in a container.'
+---
+
+The Docker image is intended for reproducible CI, release verification, and
+devcontainer-style editor setups. Native binaries are still the simpler choice
+for a local editor.
+
+## Image Contents
+
+The image is built with a multi-stage `Dockerfile`. The builder stage compiles
+static Go binaries, and the final `scratch` stage contains only:
+
+| Binary                    | Purpose                                     |
+| ------------------------- | ------------------------------------------- |
+| `/usr/local/bin/dsl`      | Standalone CLI without embedded LSP command |
+| `/usr/local/bin/dsl-full` | Combined CLI with `dsl-full lsp`            |
+| `/usr/local/bin/dsl-lsp`  | Standalone language server over stdio       |
+
+## Build
+
+```bash
+make docker-build
+```
+
+This builds `value-dsl:local` by default. Override `DOCKER_IMAGE` to tag it
+differently:
+
+```bash
+make docker-build DOCKER_IMAGE=ghcr.io/example/value-dsl:dev
+```
+
+## CLI Usage
+
+Mount the project at `/workspace` so paths in diagnostics match the files being
+checked:
+
+```bash
+docker run --rm \
+  -v "$PWD:/workspace" \
+  -w /workspace \
+  value-dsl:local \
+  /usr/local/bin/dsl validate examples/dsl/01_minimal_valid.dsl
+```
+
+The Makefile wraps the common commands:
+
+```bash
+make docker-validate FILE=examples/dsl/01_minimal_valid.dsl
+make docker-analyze FILE=examples/dsl/01_minimal_valid.dsl
+```
+
+## LSP Usage
+
+The LSP speaks over stdio, so run the container with `-i`:
+
+```bash
+docker run --rm -i \
+  -v "$PWD:/workspace" \
+  -w /workspace \
+  value-dsl:local \
+  /usr/local/bin/dsl-lsp
+```
+
+Editor integrations must preserve file paths. If the editor opens
+`/Users/me/project/example.dsl`, mount that project consistently and configure
+the editor/server command so the LSP sees the same workspace files. For normal
+local editing, prefer the native `dsl-lsp` binary.

@@ -17,6 +17,16 @@ For a combined binary literally named `dsl`, run
 `make build-full FULL_BIN=./bin/dsl` and configure the editor command as
 `dsl lsp`.
 
+Docker is also supported for devcontainer or remote-editor setups:
+
+```bash
+make docker-build
+docker run --rm -i -v "$PWD:/workspace" -w /workspace value-dsl:local /usr/local/bin/dsl-lsp
+```
+
+For local editors, the native `dsl-lsp` binary is usually simpler because file
+paths do not need to cross a container boundary.
+
 ## Workspace awareness
 
 When a `.dsl` file is below a directory containing `main.dsl`, the LSP analyzes it against that workspace. Hover, completion, go to definition, references, rename, diagnostics, and semantic tokens can use declarations from sibling files.
