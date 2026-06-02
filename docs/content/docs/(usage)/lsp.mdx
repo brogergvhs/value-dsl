@@ -33,7 +33,7 @@ When a `.dsl` file is below a directory containing `main.dsl`, the LSP analyzes 
 
 Standalone files, including `*_lone.dsl` and files inside `_lone/`, are analyzed by themselves.
 
-See [Workspaces](/docs/usage/workspace) for the exact loading rules.
+See [Workspaces](/docs/workspace) for the exact loading rules.
 
 ## Capabilities
 
@@ -154,7 +154,7 @@ Validation errors are reported to the editor as a user-visible message.
 
 ### Diagnostics
 
-Published automatically on every file change, debounced by 200 ms. The server sends `textDocument/publishDiagnostics` after each analysis run. Diagnostics map directly to the [validation codes](/docs/usage/validation).
+Published automatically on every file change, debounced by 200 ms. The server sends `textDocument/publishDiagnostics` after each analysis run. Diagnostics map directly to the [validation codes](/docs/validation).
 
 ### Semantic Tokens
 

@@ -1,12 +1,17 @@
 ---
 title: 'Getting Started'
-description: 'Build from source, write your first DSL file, and run the analysis pipeline.'
+description: 'Install the binaries, write your first DSL file, and run the analysis pipeline.'
 ---
+
+## Install
+
+For normal use, download the latest release archive from [Releases](https://github.com/brogergvhs/value-dsl/releases).
+Release archives include `dsl`, `dsl-full`, and `dsl-lsp` for Linux, macOS, and Windows.
 
 ## Prerequisites
 
 - **Go 1.22+** — required to build the CLI and LSP server
-- An LSP-capable editor (optional, but recommended) — see [LSP setup](/docs/usage/lsp)
+- An LSP-capable editor (optional, but recommended) — see [LSP setup](/docs/lsp)
 
 ## Build from Source
 
@@ -83,21 +88,13 @@ Scores range from `0.0` (no conflict — values are adjacent on the Schwartz cir
   <Card
     title="Language Reference"
     description="Full syntax for all 4 declaration types."
-    href="/docs/usage/language"
+    href="/docs/language"
   />
-  <Card
-    title="CLI"
-    description="All commands and flags."
-    href="/docs/usage/cli"
-  />
+  <Card title="CLI" description="All commands and flags." href="/docs/cli" />
   <Card
     title="Import / Export"
     description="JSON round-trip workflows."
-    href="/docs/usage/import-export"
+    href="/docs/import-export"
   />
-  <Card
-    title="LSP"
-    description="Set up editor integration."
-    href="/docs/usage/lsp"
-  />
+  <Card title="LSP" description="Set up editor integration." href="/docs/lsp" />
 </Cards>

@@ -10,7 +10,15 @@ Fumadocs documentation site.
 Detailed language, CLI, workspace, LSP, and implementation notes live in
 [`docs/`](docs/README.md).
 
+## Prebuilt Binaries
+
+For normal use, download the latest release archive from GitHub Releases instead
+of building from source. Release archives include `dsl`, `dsl-full`, and
+`dsl-lsp` for Linux, macOS, and Windows.
+
 ## Requirements
+
+Building from source requires:
 
 - Go toolchain matching [`go.mod`](go.mod)
 - `make`

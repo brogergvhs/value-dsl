@@ -7,6 +7,7 @@ toolchain go1.26.2
 require (
 	github.com/spf13/cobra v1.9.1
 	github.com/tliron/glsp v0.2.2
+	golang.org/x/image v0.41.0
 )
 
 require (
