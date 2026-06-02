@@ -1,6 +1,6 @@
 ---
 title: 'Build & Tooling'
-description: 'Entry points, all Makefile targets, tree-sitter pipeline, generated files, and CI checklist.'
+description: 'Entry points, all Makefile targets, tree-sitter pipeline, generated files, CI, and releases.'
 ---
 
 ## Entry Points
@@ -105,6 +105,44 @@ go test ./internal/semantic/...
 go test ./internal/analysis/...
 go test ./internal/lsp/...
 ```
+
+## CI and Releases
+
+GitHub Actions runs the Go build gate on pull requests and pushes to `main`.
+The gate checks formatting, runs the default test suite, runs the tagged
+combined CLI/LSP tests, and builds all three binaries:
+
+```bash
+make check
+make test
+make test-full
+make build
+make build-full
+make lsp
+```
+
+Releases are created from annotated version tags. Do not publish a stable
+release from an ordinary `main` push; keep `main` releasable, then tag the
+commit that should become immutable:
+
+```bash
+git tag -a v0.1.0 -m "v0.1.0"
+git push origin v0.1.0
+```
+
+The tag workflow runs the same test job first. If it passes, GoReleaser builds
+and attaches release archives for:
+
+| Binary     | Purpose                                          |
+| ---------- | ------------------------------------------------ |
+| `dsl`      | Standalone CLI without the embedded LSP command  |
+| `dsl-full` | Combined CLI built with the `dsl_lsp` build tag  |
+| `dsl-lsp`  | Standalone language server executable over stdio |
+
+Release archives are produced for Linux, macOS, and Windows on `amd64` and
+`arm64`, plus a `checksums.txt` file. GoReleaser injects the tag, short commit,
+and build date into `internal/version`, so released binaries report their build
+metadata through `--version`.
 
 ## CI Checklist
 
