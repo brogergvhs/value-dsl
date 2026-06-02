@@ -3,25 +3,46 @@ title: 'Architecture Overview'
 description: 'Full pipeline diagram, package inventory, and design principles for value-dsl.'
 ---
 
-value-dsl is a Go compiler + LSP server. Text enters as a raw string and exits as conflict scores or LSP responses. Every layer is a pure function over its input — no shared mutable state between layers.
+value-dsl is a Go compiler + LSP server. Text enters as a raw string and exits
+as diagnostics, optional conflict scores, formatted text, import/export output,
+or LSP responses. The core parser, semantic builder, validation, and conflict
+analysis layers are deterministic transformations over their inputs. The LSP
+server adds state at the editor boundary: open documents, debounce,
+analysis caching, and workspace loading.
 
 ## Pipeline
 
 ```mermaid
-flowchart LR
+%%{init: {"themeVariables": {"fontSize": "10px"}} }%%
+flowchart
   T[Text] --> Tok["Tokenizer\ngrammar/match.go"]
   Tok --> P["Parser\nparser/ast_builder.go"]
-  P --> AST["AST\nast/nodes.go"]
-  AST --> SB["Semantic Builder\nsemantic/builder.go"]
+  P --> PR["ParseResult\nAST + token lines + parse diagnostics + references"]
+  PR --> SB["Semantic Builder\nsemantic/builder.go"]
   SB --> SM[SemanticModel]
   SM --> V["Validation\nvalidation/validator.go"]
-  V --> D[Diagnostics]
-  SM --> CA["Conflict Analysis\nanalysis/conflicts.go"]
-  CA --> CR[ConflictResults]
-  D & CR --> DI["DocIndex\ndocindex/index.go"]
-  DI --> LSP["LSP Server\nlsp/server.go"]
-  DI --> CLI["CLI\ncmd/dsl-cli/"]
+  V --> D[Validation Diagnostics]
+  SM --> CA["Conflict Analysis\nanalysis/conflicts.go\noptional"]
+  CA --> CR[Conflict Results]
+  PR & SM & D & CR --> DI["DocIndex\ndocindex/index.go"]
+  DI --> R["Analysis Result\nanalysis/result.go"]
+  R --> CLI["CLI\ncmd/dsl-cli/"]
+  R --> LSP["LSP Server\nlsp/server.go"]
 ```
+
+`analysis.Run()` orchestrates the canonical pipeline. It first builds a
+parse-only `DocIndex` so parse diagnostics are available even if semantic
+building fails. After a successful semantic build, it validates the model, runs
+conflict analysis only when `Options.BuildConflicts` is enabled, and rebuilds
+the index with the AST, token lines, semantic model, parse diagnostics,
+validation diagnostics, conflicts, and parser references.
+
+The CLI consumes the resulting `analysis.Result`: `validate` reports
+diagnostics, `analyze` enables conflict generation and prints conflicts, and
+other commands use the same parser/analysis surface where needed. The LSP server
+also consumes `analysis.Result`, but caches it per open document and uses
+fallback navigation data from the last good index when the current text is
+temporarily invalid.
 
 ## Package Inventory
 
@@ -34,7 +55,7 @@ flowchart LR
 | `internal/model`          | Shared domain types                                | `Requirement`, `Stakeholder`, `Value`, `AssignmentEntry`, `ConflictResult` |
 | `internal/validation`     | Semantic validation and diagnostics                | `Validate()`, `Diagnostic`, `DiagnosticCode`                               |
 | `internal/analysis`       | Analysis pipeline orchestration + conflict scoring | `Run()`, `AnalyzeConflicts()`, `ConflictScore()`                           |
-| `internal/docindex`       | Navigation index for LSP                           | `Document`, `Build()`                                                      |
+| `internal/docindex`       | Shared analysis/navigation index                   | `Document`, `Build()`                                                      |
 | `internal/lsp`            | LSP server and feature handlers                    | `Server`, `NewServer()`                                                    |
 | `internal/formatting`     | DSL formatter                                      | `Format()`, `FormatForWrite()`                                             |
 | `internal/ioformat`       | Import/export interchange formats                  | `Document`, `Codec`, `Encode()`, `Decode()`                                |
@@ -63,6 +84,7 @@ Go 1.22. Direct dependencies:
 | ------------------------ | ----------------------- |
 | `github.com/spf13/cobra` | CLI command framework   |
 | `github.com/tliron/glsp` | LSP JSON-RPC SDK for Go |
+| `golang.org/x/image`     | LSP benchmark graphing  |
 
 ## Section Pages
 
