@@ -11,19 +11,43 @@ import (
 )
 
 func TestRunVersion(t *testing.T) {
+	for _, args := range [][]string{
+		{"--version"},
+		{"-v"},
+	} {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			var stdout bytes.Buffer
+			var stderr bytes.Buffer
+
+			code := run(args, &stdout, &stderr)
+
+			if code != 0 {
+				t.Fatalf("expected exit code 0, got %d", code)
+			}
+			if got := stdout.String(); !strings.HasPrefix(got, "value-dsl-lsp ") {
+				t.Fatalf("expected version output, got %q", got)
+			}
+			if stderr.Len() != 0 {
+				t.Fatalf("expected no stderr output, got %q", stderr.String())
+			}
+		})
+	}
+}
+
+func TestRunRejectsSingleDashVersion(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	code := run([]string{"--version"}, &stdout, &stderr)
+	code := run([]string{"-version"}, &stdout, &stderr)
 
-	if code != 0 {
-		t.Fatalf("expected exit code 0, got %d", code)
+	if code != 2 {
+		t.Fatalf("expected exit code 2, got %d", code)
 	}
-	if got := stdout.String(); !strings.HasPrefix(got, "value-dsl-lsp ") {
-		t.Fatalf("expected version output, got %q", got)
+	if stdout.Len() != 0 {
+		t.Fatalf("expected no stdout output, got %q", stdout.String())
 	}
-	if stderr.Len() != 0 {
-		t.Fatalf("expected no stderr output, got %q", stderr.String())
+	if got := stderr.String(); !strings.Contains(got, "unknown shorthand flag: 'e' in -ersion") {
+		t.Fatalf("expected single-dash version rejection, got %q", got)
 	}
 }
 

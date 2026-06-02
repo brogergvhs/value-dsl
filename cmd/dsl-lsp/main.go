@@ -2,13 +2,13 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 
 	"github.com/brogergvhs/value-dsl/internal/lsp"
+	"github.com/spf13/cobra"
 )
 
 var runLSPStdio = lsp.RunStdio
@@ -18,38 +18,43 @@ func main() {
 }
 
 func run(args []string, stdout io.Writer, stderr io.Writer) int {
-	flags := flag.NewFlagSet("dsl-lsp", flag.ContinueOnError)
-	flags.SetOutput(stderr)
+	debug := false
+	exitCode := 0
 
-	debug := flags.Bool("debug", false, "write debug logs to stderr")
-	version := flags.Bool("version", false, "print version and exit")
-	if err := flags.Parse(args); err != nil {
-		return 2
+	cmd := &cobra.Command{
+		Use:           "dsl-lsp",
+		Version:       lsp.Version(),
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Args: func(_ *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return nil
+			}
+			return fmt.Errorf("unexpected argument %q\n\ndsl-lsp is already the language server command.\nRun `dsl-lsp` directly, or use `dsl lsp` with the combined CLI.", args[0])
+		},
+		Run: func(_ *cobra.Command, _ []string) {
+			var logger *slog.Logger
+			if debug {
+				logger = slog.New(slog.NewTextHandler(stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+			}
+			if err := runLSPStdio(logger, stderr); err != nil {
+				if logger != nil {
+					logger.Error("lsp server stopped", "error", err)
+				}
+				fmt.Fprintln(stderr, err.Error())
+				exitCode = 1
+			}
+		},
 	}
+	cmd.SetArgs(args)
+	cmd.SetOut(stdout)
+	cmd.SetErr(stderr)
+	cmd.SetVersionTemplate("value-dsl-lsp {{.Version}}\n")
+	cmd.Flags().BoolVar(&debug, "debug", false, "write debug logs to stderr")
 
-	if flags.NArg() != 0 {
-		fmt.Fprintf(stderr, "unexpected argument %q\n\n", flags.Arg(0))
-		fmt.Fprintln(stderr, "dsl-lsp is already the language server command.")
-		fmt.Fprintln(stderr, "Run `dsl-lsp` directly, or use `dsl lsp` with the combined CLI.")
-		return 2
-	}
-
-	if *version {
-		fmt.Fprintf(stdout, "value-dsl-lsp %s\n", lsp.Version())
-		return 0
-	}
-
-	var logger *slog.Logger
-	if *debug {
-		logger = slog.New(slog.NewTextHandler(stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	}
-	if err := runLSPStdio(logger, stderr); err != nil {
-		if logger != nil {
-			logger.Error("lsp server stopped", "error", err)
-		}
+	if err := cmd.Execute(); err != nil {
 		fmt.Fprintln(stderr, err.Error())
-		return 1
+		return 2
 	}
-
-	return 0
+	return exitCode
 }
