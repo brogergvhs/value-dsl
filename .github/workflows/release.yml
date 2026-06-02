@@ -1,0 +1,69 @@
+name: CI and Release
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Check formatting
+        run: make check
+
+      - name: Test
+        run: make test
+
+      - name: Test combined CLI and LSP
+        run: make test-full
+
+      - name: Build binaries
+        run: |
+          make build
+          make build-full
+          make lsp
+
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

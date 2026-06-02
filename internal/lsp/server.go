@@ -17,6 +17,7 @@ import (
 	"github.com/brogergvhs/value-dsl/internal/lsp/semantictokens"
 	"github.com/brogergvhs/value-dsl/internal/sourcepos"
 	"github.com/brogergvhs/value-dsl/internal/validation"
+	"github.com/brogergvhs/value-dsl/internal/version"
 	"github.com/brogergvhs/value-dsl/internal/workspace"
 
 	"github.com/tliron/glsp"
@@ -24,8 +25,7 @@ import (
 )
 
 const (
-	serverName    = "value-dsl-lsp"
-	serverVersion = "0.1.0"
+	serverName = "value-dsl-lsp"
 )
 
 type Server struct {
@@ -65,7 +65,7 @@ func NewServer(loggers ...*slog.Logger) *Server {
 
 func (s *Server) Handler() *protocol.Handler { return &s.handler }
 
-func Version() string { return serverVersion }
+func Version() string { return version.String() }
 
 func (s *Server) newHandler() protocol.Handler {
 	return protocol.Handler{
@@ -108,7 +108,7 @@ func (s *Server) initialize(_ *glsp.Context, _ *protocol.InitializeParams) (any,
 	}
 	return protocol.InitializeResult{
 		Capabilities: capabilities,
-		ServerInfo:   &protocol.InitializeResultServerInfo{Name: serverName, Version: &[]string{serverVersion}[0]},
+		ServerInfo:   &protocol.InitializeResultServerInfo{Name: serverName, Version: &[]string{version.String()}[0]},
 	}, nil
 }
 

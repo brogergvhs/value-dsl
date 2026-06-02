@@ -1,0 +1,85 @@
+version: 2
+
+project_name: value-dsl
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: dsl
+    main: ./cmd/dsl-cli
+    binary: dsl
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/brogergvhs/value-dsl/internal/version.Version={{.Version}} -X github.com/brogergvhs/value-dsl/internal/version.Commit={{.ShortCommit}} -X github.com/brogergvhs/value-dsl/internal/version.Date={{.Date}}
+
+  - id: dsl-full
+    main: ./cmd/dsl-cli
+    binary: dsl-full
+    tags:
+      - dsl_lsp
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/brogergvhs/value-dsl/internal/version.Version={{.Version}} -X github.com/brogergvhs/value-dsl/internal/version.Commit={{.ShortCommit}} -X github.com/brogergvhs/value-dsl/internal/version.Date={{.Date}}
+
+  - id: dsl-lsp
+    main: ./cmd/dsl-lsp
+    binary: dsl-lsp
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/brogergvhs/value-dsl/internal/version.Version={{.Version}} -X github.com/brogergvhs/value-dsl/internal/version.Commit={{.ShortCommit}} -X github.com/brogergvhs/value-dsl/internal/version.Date={{.Date}}
+
+archives:
+  - id: binaries
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	coreanalysis "github.com/brogergvhs/value-dsl/internal/analysis"
+	"github.com/brogergvhs/value-dsl/internal/version"
 	"github.com/brogergvhs/value-dsl/internal/workspace"
 
 	"github.com/spf13/cobra"
@@ -15,6 +16,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:           "dsl",
 	Short:         "Value-oriented monitoring DSL tool",
+	Version:       version.String(),
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }

@@ -98,6 +98,19 @@ make analyze FILE=...  # report value conflicts
 make full              # tests, binaries, tree-sitter pipeline
 ```
 
+## Releases
+
+Pushes and pull requests run the Go checks and build all three binaries. Tagged
+pushes create GitHub Releases with GoReleaser:
+
+```bash
+git tag -a v0.1.0 -m "v0.1.0"
+git push origin v0.1.0
+```
+
+Release artifacts include `dsl`, `dsl-full`, and `dsl-lsp` for Linux, macOS,
+and Windows.
+
 ## Documentation Site
 
 The docs site is in [`docs/`](docs/README.md):
