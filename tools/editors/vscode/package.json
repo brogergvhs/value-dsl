@@ -1,0 +1,76 @@
+{
+  "name": "value-dsl",
+  "displayName": "Value DSL",
+  "description": "VS Code support for Value DSL.",
+  "version": "0.0.1",
+  "publisher": "brogergvhs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brogergvhs/value-dsl.git"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:dsl"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "dsl",
+        "aliases": [
+          "Value DSL",
+          "dsl"
+        ],
+        "extensions": [
+          ".dsl"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "dsl",
+        "scopeName": "source.dsl",
+        "path": "./syntaxes/value-dsl.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "Value DSL",
+      "properties": {
+        "dsl.lsp.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the dsl-lsp executable. If empty, the extension tries to use dsl-lsp from PATH or the repository bin directory during development."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "valueDsl.restartLanguageServer",
+        "title": "Value DSL: Restart Language Server"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "npm run generate:syntax && npm run compile",
+    "compile": "tsc -p ./",
+    "generate:syntax": "node scripts/generate-textmate.mjs",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.0.0",
+    "typescript": "^5.0.0"
+  }
+}
