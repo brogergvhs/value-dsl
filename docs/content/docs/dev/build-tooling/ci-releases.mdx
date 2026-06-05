@@ -1,0 +1,73 @@
+---
+title: 'CI & Releases'
+description: 'GitHub Actions gates, GoReleaser release archives, and release checklist.'
+---
+
+## Testing
+
+```bash
+go test ./...
+```
+
+Covers all packages. Benchmark tests live in `internal/bench/`.
+
+Individual package tests:
+
+```bash
+go test ./internal/validation/...
+go test ./internal/semantic/...
+go test ./internal/analysis/...
+go test ./internal/lsp/...
+```
+
+## CI Gate
+
+GitHub Actions runs the Go build gate on pull requests and pushes to `main`.
+The gate checks formatting, runs the default test suite, runs the tagged
+combined CLI/LSP tests, and builds all three binaries:
+
+```bash
+make check
+make test
+make test-full
+make build
+make build-full
+make lsp
+```
+
+## Binary Releases
+
+Releases are created from annotated version tags. Do not publish a stable
+release from an ordinary `main` push; keep `main` releasable, then tag the
+commit that should become immutable:
+
+```bash
+git tag -a v0.1.0 -m "v0.1.0"
+git push origin v0.1.0
+```
+
+The tag workflow runs the same test job first. If it passes, GoReleaser builds
+and attaches release archives for:
+
+| Binary     | Purpose                                          |
+| ---------- | ------------------------------------------------ |
+| `dsl`      | Standalone CLI without the embedded LSP command  |
+| `dsl-full` | Combined CLI built with the `dsl_lsp` build tag  |
+| `dsl-lsp`  | Standalone language server executable over stdio |
+
+Release archives are produced for Linux, macOS, and Windows on `amd64` and
+`arm64`, plus a `checksums.txt` file. GoReleaser injects the tag, short commit,
+and build date into `internal/version`, so released binaries report their build
+metadata through `--version`.
+
+## Checklist
+
+```bash
+make check    # gofmt; fails if any file is not formatted
+make test     # all tests
+make full     # tests, all binaries, and tree-sitter
+```
+
+For a clean CI gate, `make check && make test` is the minimum. `make full` is
+recommended before tagging a release to verify the editor grammar pipeline is
+in sync.

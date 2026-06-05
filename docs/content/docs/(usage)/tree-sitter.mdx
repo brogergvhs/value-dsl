@@ -3,74 +3,23 @@ title: 'Tree-sitter'
 description: 'Tree-sitter grammar for structural syntax highlighting, independent of the LSP.'
 ---
 
-The tree-sitter grammar provides structural syntax highlighting for `.dsl` files. It is generated from the Go grammar source, so it stays in sync with the DSL definition automatically.
+The tree-sitter grammar provides structural syntax highlighting for `.dsl`
+files. It is generated from the Go grammar source, so it stays in sync with the
+DSL definition automatically.
 
-## Installation
+Editor-specific setup lives in [Editor Integration](/docs/editor-integration).
 
-```bash
-make tree-sitter-install
-```
-
-This compiles `parser.so` and copies it to the default (for me hehe) Neovim parser directory:
-
-```
-~/.local/share/nvim/lazy/nvim-treesitter/parser/value_dsl.so
-```
-
-It also installs the Neovim query files to:
-
-```
-~/.config/nvim/queries/value_dsl/
-```
-
-To install to a custom location:
+## Build Artifacts
 
 ```bash
-TS_PARSER_DIR=/your/parser/path TS_QUERIES_DIR=/your/queries/value_dsl make tree-sitter-install
+make tree-sitter-sync
+make tree-sitter-test
 ```
 
-## Neovim Setup
-
-Register the parser in your nvim-treesitter config:
-
-```lua
-local parser_config = require('nvim-treesitter.parsers').get_parser_configs()
-
-parser_config.value_dsl = {
-  install_info = {
-    url = '/path/to/tools/tree-sitter-value-dsl',
-    files = { 'src/parser.c' },
-    branch = 'main',
-  },
-  filetype = 'dsl',
-}
-```
-
-Add filetype detection if not already set:
-
-```lua
-vim.filetype.add({ extension = { dsl = 'dsl' } })
-vim.treesitter.language.register('value_dsl', 'dsl')
-```
-
-<Callout type="info">
-  `TSInstall value_dsl` only installs the parser. Highlighting also needs
-  query files on Neovim's runtime path, normally under
-  `queries/value_dsl/highlights.scm`. Run `make tree-sitter-install` after
-  `make tree-sitter-sync` to install both the parser and the generated query
-  files.
-</Callout>
-
-If the parser is installed but highlighting is still blank, check these inside
-Neovim:
-
-```vim
-:set filetype?
-:InspectTree
-:lua print(vim.treesitter.language.get_lang(vim.bo.filetype))
-```
-
-Expected values are filetype `dsl` and Tree-sitter language `value_dsl`.
+`make tree-sitter-sync` regenerates `tools/tree-sitter-value-dsl/grammar.js`
+and the query files from `generated/grammar.json`. `make tree-sitter-test`
+checks that the generated grammar has no drift and runs the Tree-sitter corpus
+tests.
 
 ## Highlighted Token Types
 

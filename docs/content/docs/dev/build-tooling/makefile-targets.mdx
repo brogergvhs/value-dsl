@@ -1,0 +1,39 @@
+---
+title: 'Makefile Targets'
+description: 'Makefile target reference and platform assumptions.'
+---
+
+## Targets
+
+| Target                | What it does                                                      |
+| --------------------- | ----------------------------------------------------------------- |
+| `build`               | Compile standalone `cmd/dsl-cli` -> `./bin/dsl`                   |
+| `build-full`          | Compile `cmd/dsl-cli` with `dsl_lsp` tag -> `./bin/dsl-full`      |
+| `lsp`                 | Compile `cmd/dsl-lsp` -> `./bin/dsl-lsp`                          |
+| `test`                | `go test ./...`                                                   |
+| `test-full`           | Test the tagged combined CLI/LSP build                            |
+| `fmt`                 | `gofmt -w` all Go files                                           |
+| `check`               | `gofmt -l` all Go files; exits 1 if any differ                    |
+| `parse`               | Run `dsl parse` on `FILE=`                                        |
+| `validate`            | Run `dsl validate` on `FILE=`                                     |
+| `analyze`             | Run `dsl analyze` on `FILE=`                                      |
+| `docker-build`        | Build the Docker image as `DOCKER_IMAGE`                          |
+| `docker-validate`     | Run `dsl validate` inside Docker against mounted `FILE=`          |
+| `docker-analyze`      | Run `dsl analyze` inside Docker against mounted `FILE=`           |
+| `docker-lsp`          | Run `dsl-lsp` inside Docker over stdio                            |
+| `grammar-export`      | Export `generated/grammar.json` from Go grammar source            |
+| `tree-sitter-sync`    | Regenerate `grammar.js` and queries from `generated/grammar.json` |
+| `vscode-syntax-sync`  | Regenerate VS Code TextMate grammar from `generated/grammar.json` |
+| `editor-sync`         | Regenerate Tree-sitter and VS Code editor grammar artifacts       |
+| `tree-sitter-test`    | Run drift check + Tree-sitter corpus tests                        |
+| `tree-sitter-install` | Compile `parser.so` and copy to `TS_PARSER_DIR`                   |
+| `tree-sitter`         | Full pipeline: sync + test + install                              |
+| `full`                | `test` + `test-full` + all binaries + `tree-sitter`               |
+| `clean`               | Remove `./bin/`                                                   |
+
+<Callout type="info">
+  The Makefile is POSIX-oriented rather than fully OS-independent. It works on
+  macOS/Linux and usually under WSL, Git Bash, or MSYS2 on Windows, but it uses
+  `/bin/sh`, `find`, `rm`, `cat`, Unix paths, and `.so` parser artifacts, so it
+  is not native `cmd`/PowerShell compatible as-is.
+</Callout>

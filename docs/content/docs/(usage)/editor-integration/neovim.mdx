@@ -1,0 +1,153 @@
+---
+title: 'Neovim'
+description: 'Use the generated Tree-sitter parser and dsl-lsp language server in Neovim.'
+---
+
+Neovim uses two separate integrations:
+
+| Integration                    | Role                                                        |
+| ------------------------------ | ----------------------------------------------------------- |
+| Tree-sitter parser and queries | Structural highlighting, folds, indentation                 |
+| `dsl-lsp`                      | Diagnostics, completion, hover, symbols, references, rename |
+
+## Build Local Editor Artifacts
+
+From the repository root:
+
+```bash
+make lsp
+make tree-sitter-install
+```
+
+`make lsp` builds:
+
+```text
+./bin/dsl-lsp
+```
+
+`make tree-sitter-install` compiles the generated Tree-sitter parser and
+installs the Neovim queries. By default it writes to:
+
+```text
+~/.local/share/nvim/lazy/nvim-treesitter/parser/value_dsl.so
+~/.config/nvim/queries/value_dsl/
+```
+
+Use custom locations when your Neovim setup stores parsers or queries
+elsewhere:
+
+```bash
+TS_PARSER_DIR=/your/parser/path TS_QUERIES_DIR=/your/queries/value_dsl make tree-sitter-install
+```
+
+## Tree-sitter Setup
+
+Register the generated parser language:
+
+```lua
+local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
+
+parser_config.value_dsl = {
+  install_info = {
+    url = "/path/to/value-dsl/tools/tree-sitter-value-dsl",
+    files = { "src/parser.c" },
+    branch = "main",
+    generate_requires_npm = false,
+    requires_generate_from_grammar = false,
+  },
+  filetype = "dsl",
+}
+
+vim.filetype.add({ extension = { dsl = "dsl" } })
+vim.treesitter.language.register("value_dsl", "dsl")
+```
+
+This config does not point directly at `value_dsl.so`. The `install_info`
+section tells `nvim-treesitter` how to build/install the parser when you run
+`:TSInstall value_dsl`. The Makefile path:
+
+```make
+TS_PARSER_DIR ?= $(HOME)/.local/share/nvim/lazy/nvim-treesitter/parser
+TS_PARSER_SO  := $(TS_PARSER_DIR)/value_dsl.so
+```
+
+is separate: `make tree-sitter-install` writes the compiled parser to that
+runtime parser directory. Neovim then loads it by language name
+(`value_dsl`) when a `.dsl` buffer is opened.
+
+Then enable highlighting in `nvim-treesitter`:
+
+```lua
+require("nvim-treesitter.configs").setup({
+  highlight = {
+    enable = true,
+    additional_vim_regex_highlighting = false,
+  },
+  indent = { enable = true },
+  ensure_installed = {
+    "value_dsl",
+  },
+})
+```
+
+If you use `make tree-sitter-install`, the parser is already written to the
+configured `TS_PARSER_DIR`; keeping `value_dsl` in `ensure_installed` is only
+needed if you also want `nvim-treesitter` to manage installation through
+`:TSInstall value_dsl`.
+
+Highlighting also needs the generated query files under `queries/value_dsl/`,
+which is why `make tree-sitter-install` installs both the parser and the query
+files.
+
+## LSP Setup
+
+Using `nvim-lspconfig`:
+
+```lua
+local lspconfig = require("lspconfig")
+local configs = require("lspconfig.configs")
+
+if not configs.value_dsl then
+  configs.value_dsl = {
+    default_config = {
+      cmd = { "/path/to/value-dsl/bin/dsl-lsp" },
+      filetypes = { "dsl" },
+      root_dir = lspconfig.util.find_git_ancestor,
+      settings = {},
+    },
+  }
+end
+
+lspconfig.value_dsl.setup({})
+```
+
+Alternatively, if you prefer using a single `dsl-full` binary, you should change the cmd to:
+
+```lua
+cmd = { "/path/to/value-dsl/bin/dsl-full", "lsp" },
+```
+
+## Troubleshooting
+
+Inside a `.dsl` buffer, check:
+
+```vim
+:set filetype?
+:InspectTree
+:lua print(vim.treesitter.language.get_lang(vim.bo.filetype))
+```
+
+Expected values are filetype `dsl` and Tree-sitter language `value_dsl`.
+
+If highlighting is blank even though `TSInstall value_dsl` says the parser is
+installed, reinstall the generated parser and queries:
+
+```bash
+make tree-sitter-install
+```
+
+If LSP features are missing, verify the server starts:
+
+```bash
+./bin/dsl-lsp -v
+```

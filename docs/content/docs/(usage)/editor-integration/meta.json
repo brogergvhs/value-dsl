@@ -1,0 +1,4 @@
+{
+  "title": "Editor Integration",
+  "pages": ["index", "neovim", "vscode"]
+}
