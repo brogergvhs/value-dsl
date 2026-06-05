@@ -5,17 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"strings"
 	"sync"
 	"time"
 
 	coreanalysis "github.com/brogergvhs/value-dsl/internal/analysis"
 	"github.com/brogergvhs/value-dsl/internal/config"
 	"github.com/brogergvhs/value-dsl/internal/docindex"
-	"github.com/brogergvhs/value-dsl/internal/formatting"
-	"github.com/brogergvhs/value-dsl/internal/lsp/completion"
 	"github.com/brogergvhs/value-dsl/internal/lsp/semantictokens"
-	"github.com/brogergvhs/value-dsl/internal/sourcepos"
 	"github.com/brogergvhs/value-dsl/internal/validation"
 	"github.com/brogergvhs/value-dsl/internal/version"
 	"github.com/brogergvhs/value-dsl/internal/workspace"
@@ -78,6 +74,7 @@ func (s *Server) newHandler() protocol.Handler {
 		TextDocumentDidClose:           s.didClose,
 		TextDocumentCompletion:         s.complete,
 		TextDocumentHover:              s.hover,
+		TextDocumentDeclaration:        s.declaration,
 		TextDocumentDefinition:         s.definition,
 		TextDocumentReferences:         s.references,
 		TextDocumentRename:             s.rename,
@@ -87,6 +84,7 @@ func (s *Server) newHandler() protocol.Handler {
 	}
 }
 
+// initialize handles the initialize request.
 func (s *Server) initialize(_ *glsp.Context, _ *protocol.InitializeParams) (any, error) {
 	capabilities := s.handler.CreateServerCapabilities()
 	openClose := true
@@ -94,6 +92,7 @@ func (s *Server) initialize(_ *glsp.Context, _ *protocol.InitializeParams) (any,
 	capabilities.TextDocumentSync = protocol.TextDocumentSyncOptions{OpenClose: &openClose, Change: &change}
 	capabilities.CompletionProvider = &protocol.CompletionOptions{}
 	capabilities.HoverProvider = true
+	capabilities.DeclarationProvider = true
 	capabilities.DefinitionProvider = true
 	capabilities.ReferencesProvider = true
 	capabilities.RenameProvider = true
@@ -112,12 +111,18 @@ func (s *Server) initialize(_ *glsp.Context, _ *protocol.InitializeParams) (any,
 	}, nil
 }
 
+// initialized handles the initialized request.
 func (s *Server) initialized(_ *glsp.Context, _ *protocol.InitializedParams) error { return nil }
-func (s *Server) shutdown(_ *glsp.Context) error                                   { s.cancelAllScheduled(); return nil }
-func (s *Server) exit(_ *glsp.Context) error                                       { return nil }
+
+// shutdown handles the shutdown request.
+func (s *Server) shutdown(_ *glsp.Context) error { s.cancelAllScheduled(); return nil }
+
+// exit handles the exit request.
+func (s *Server) exit(_ *glsp.Context) error { return nil }
 
 // Text document lifecycle
 
+// didOpen handles the textDocument/didOpen request.
 func (s *Server) didOpen(context *glsp.Context, params *protocol.DidOpenTextDocumentParams) error {
 	s.lifecycleMu.Lock()
 	defer s.lifecycleMu.Unlock()
@@ -131,6 +136,7 @@ func (s *Server) didOpen(context *glsp.Context, params *protocol.DidOpenTextDocu
 	return nil
 }
 
+// didChange handles the textDocument/didChange request.
 func (s *Server) didChange(context *glsp.Context, params *protocol.DidChangeTextDocumentParams) error {
 	s.lifecycleMu.Lock()
 	defer s.lifecycleMu.Unlock()
@@ -150,6 +156,7 @@ func (s *Server) didChange(context *glsp.Context, params *protocol.DidChangeText
 	return nil
 }
 
+// didClose handles the textDocument/didClose request.
 func (s *Server) didClose(context *glsp.Context, params *protocol.DidCloseTextDocumentParams) error {
 	s.lifecycleMu.Lock()
 	defer s.lifecycleMu.Unlock()
@@ -163,79 +170,6 @@ func (s *Server) didClose(context *glsp.Context, params *protocol.DidCloseTextDo
 	}
 	publishDiagnostics(context.Notify, uri, 0, coreanalysis.Result{})
 	return nil
-}
-
-// Feature handlers
-
-func (s *Server) complete(_ *glsp.Context, params *protocol.CompletionParams) (any, error) {
-	document, result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
-	if !ok {
-		return protocol.CompletionList{IsIncomplete: false}, nil
-	}
-	return protocol.CompletionList{IsIncomplete: false, Items: completion.Items(document.Text, params.Position, s.navigationAnalysis(document.URI, result))}, nil
-}
-
-func (s *Server) hover(_ *glsp.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
-	document, result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
-	if !ok {
-		return nil, nil
-	}
-	return resolveHover(document.Text, params.Position, s.navigationAnalysis(document.URI, result)), nil
-}
-
-func (s *Server) definition(_ *glsp.Context, params *protocol.DefinitionParams) (any, error) {
-	document, result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
-	if !ok {
-		return []protocol.Location{}, nil
-	}
-	return resolveDefinition(params.TextDocument.URI, params.Position, s.navigationAnalysis(document.URI, result)), nil
-}
-
-func (s *Server) references(_ *glsp.Context, params *protocol.ReferenceParams) ([]protocol.Location, error) {
-	document, result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
-	if !ok {
-		return []protocol.Location{}, nil
-	}
-	return resolveReferences(params.TextDocument.URI, params.Position, params.Context.IncludeDeclaration, s.navigationAnalysis(document.URI, result)), nil
-}
-
-func (s *Server) rename(_ *glsp.Context, params *protocol.RenameParams) (*protocol.WorkspaceEdit, error) {
-	document, result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
-	if !ok {
-		return &protocol.WorkspaceEdit{}, nil
-	}
-	return resolveRename(params.TextDocument.URI, params.Position, params.NewName, s.navigationAnalysis(document.URI, result))
-}
-
-func (s *Server) documentSymbol(_ *glsp.Context, params *protocol.DocumentSymbolParams) (any, error) {
-	document, result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
-	if !ok {
-		return []protocol.DocumentSymbol{}, nil
-	}
-	return buildDocumentSymbols(s.navigationAnalysis(document.URI, result)), nil
-}
-
-func (s *Server) format(_ *glsp.Context, params *protocol.DocumentFormattingParams) ([]protocol.TextEdit, error) {
-	document, ok := s.documents.Get(params.TextDocument.URI)
-	if !ok {
-		return []protocol.TextEdit{}, nil
-	}
-	formatted, err := formatting.Format(document.Text)
-	if err != nil {
-		return nil, fmt.Errorf("format document: %w", err)
-	}
-	if formatted == document.Text {
-		return []protocol.TextEdit{}, nil
-	}
-	return []protocol.TextEdit{{Range: fullDocumentRange(document.Text), NewText: formatted}}, nil
-}
-
-func (s *Server) semanticTokens(_ *glsp.Context, params *protocol.SemanticTokensParams) (*protocol.SemanticTokens, error) {
-	document, result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
-	if !ok {
-		return &protocol.SemanticTokens{}, nil
-	}
-	return semantictokens.Resolve(document.Text, result), nil
 }
 
 // Analysis helpers
@@ -416,33 +350,6 @@ func (s *Server) clearScheduled(uri string, serial uint64) {
 	defer s.scheduleMu.Unlock()
 	if scheduled, ok := s.scheduled[uri]; ok && scheduled.serial == serial {
 		delete(s.scheduled, uri)
-	}
-}
-
-// Utility
-
-func publishDiagnostics(notify glsp.NotifyFunc, uri protocol.DocumentUri, version int32, result coreanalysis.Result) {
-	if notify == nil {
-		return
-	}
-	versionUint := protocol.UInteger(version)
-	notify(string(protocol.ServerTextDocumentPublishDiagnostics), protocol.PublishDiagnosticsParams{
-		URI:         uri,
-		Version:     &versionUint,
-		Diagnostics: diagnosticsFromResult(result),
-	})
-}
-
-func fullDocumentRange(text string) protocol.Range {
-	lastLine := strings.Count(text, "\n")
-	lastLineText := text
-	if i := strings.LastIndex(text, "\n"); i >= 0 {
-		lastLineText = text[i+1:]
-	}
-	lastCharacter, _ := sourcepos.UTF16OffsetFromByteOK(lastLineText, len(lastLineText))
-	return protocol.Range{
-		Start: protocol.Position{Line: 0, Character: 0},
-		End:   protocol.Position{Line: uint32(lastLine), Character: uint32(lastCharacter)},
 	}
 }
 

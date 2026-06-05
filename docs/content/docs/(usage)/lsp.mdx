@@ -37,16 +37,60 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 
 ## Capabilities
 
-| Feature          | Description                                |
-| ---------------- | ------------------------------------------ |
-| Hover            | Symbol documentation at cursor position    |
-| Completion       | Context-aware keyword and name suggestions |
-| Go to Definition | Jump to a symbol's declaration             |
-| Find References  | List all uses of a symbol                  |
-| Rename           | Rename a symbol across all occurrences     |
-| Document Symbols | Outline panel showing all declarations     |
-| Diagnostics      | Real-time errors and warnings              |
-| Semantic Tokens  | Structured syntax highlighting roles       |
+| LSP method or capability           | Feature                   | Notes                                      |
+| ---------------------------------- | ------------------------- | ------------------------------------------ |
+| `initialize`                       | Server capabilities       | Advertises the implemented providers       |
+| `initialized`                      | Initialization complete   | Accepted as a no-op                        |
+| `shutdown`                         | Server shutdown           | Cancels scheduled analysis                 |
+| `exit`                             | Process exit notification | Accepted as a no-op                        |
+| `textDocument/didOpen`             | Open document sync        | Runs analysis and publishes diagnostics    |
+| `textDocument/didChange`           | Change document sync      | Full-document sync with debounced analysis |
+| `textDocument/didClose`            | Close document sync       | Clears document state and diagnostics      |
+| `textDocument/completion`          | Completion                | Context-aware keywords and symbols         |
+| `textDocument/hover`               | Hover                     | Symbol and clause documentation            |
+| `textDocument/declaration`         | Go to declaration         | Reuses definition for DSL declarations     |
+| `textDocument/definition`          | Go to definition          | Workspace-aware declaration lookup         |
+| `textDocument/references`          | Find references           | Workspace-aware references                 |
+| `textDocument/rename`              | Rename                    | Produces workspace edits after validation  |
+| `textDocument/documentSymbol`      | Document symbols          | Outline data for declarations and children |
+| `textDocument/formatting`          | Format document           | Uses the DSL formatter                     |
+| `textDocument/semanticTokens/full` | Semantic tokens           | Full semantic token response               |
+| `textDocument/publishDiagnostics`  | Diagnostics               | Server-pushed diagnostics notification     |
+
+<details>
+<summary>Not implemented LSP capabilities</summary>
+
+| LSP method or capability                 | Feature                     | Notes                                         |
+| ---------------------------------------- | --------------------------- | --------------------------------------------- |
+| `textDocument/didSave`                   | Save notification           | Not needed for current analysis model         |
+| `textDocument/willSave`                  | Pre-save notification       | Not implemented                               |
+| `textDocument/willSaveWaitUntil`         | Pre-save edits              | Not implemented                               |
+| `completionItem/resolve`                 | Lazy completion details     | Completion items are returned fully populated |
+| `textDocument/signatureHelp`             | Signature help              | Not implemented                               |
+| `textDocument/typeDefinition`            | Go to type definition       | Not applicable to current DSL model           |
+| `textDocument/implementation`            | Go to implementation        | Not applicable to current DSL model           |
+| `textDocument/documentHighlight`         | Highlight symbol references | Not implemented                               |
+| `textDocument/codeAction`                | Code actions                | Not implemented                               |
+| `textDocument/codeLens`                  | Code lens                   | Not implemented                               |
+| `textDocument/documentLink`              | Document links              | Not implemented                               |
+| `textDocument/rangeFormatting`           | Format selection            | Not implemented                               |
+| `textDocument/onTypeFormatting`          | Format while typing         | Not implemented                               |
+| `textDocument/foldingRange`              | Folding ranges              | Not implemented                               |
+| `textDocument/selectionRange`            | Selection ranges            | Not implemented                               |
+| `textDocument/linkedEditingRange`        | Linked editing              | Not implemented                               |
+| `textDocument/inlayHint`                 | Inlay hints                 | Not implemented                               |
+| `textDocument/diagnostic`                | Pull diagnostics            | Diagnostics are pushed instead                |
+| `textDocument/semanticTokens/range`      | Range semantic tokens       | Only full semantic tokens are implemented     |
+| `textDocument/semanticTokens/full/delta` | Delta semantic tokens       | Only full semantic tokens are implemented     |
+| `workspace/symbol`                       | Workspace symbols           | Not implemented                               |
+| `workspace/executeCommand`               | Server commands             | Not implemented                               |
+| `workspace/didChangeConfiguration`       | Config changes              | Not implemented                               |
+| `workspace/didChangeWatchedFiles`        | Watched file changes        | Not implemented                               |
+| `workspace/workspaceFolders`             | Workspace folder changes    | Not implemented                               |
+| `callHierarchy/*`                        | Call hierarchy              | Not applicable to current DSL model           |
+| `typeHierarchy/*`                        | Type hierarchy              | Not applicable to current DSL model           |
+
+</details>
 
 ## Feature Details
 
@@ -78,6 +122,11 @@ Completion items for values include their category and geometry as documentation
 
 `textDocument/definition` — jumps to the declaration of the symbol under the cursor. Works for stakeholders, values, and requirements, including declarations in sibling workspace files.
 
+### Go to Declaration
+
+`textDocument/declaration` — reuses `textDocument/definition`. In this DSL,
+declarations and definitions are the same source location.
+
 ### Find References
 
 `textDocument/references` — lists all locations where the symbol under the cursor is used across the workspace.
@@ -104,6 +153,11 @@ Validation errors are reported to the editor as a user-visible message.
 | Value declaration                            | Constant |
 | Requirement declaration                      | Object   |
 | Requirement child (clause, action, metadata) | Property |
+
+### Formatting
+
+`textDocument/formatting` — formats the whole document using the same formatter
+as the CLI.
 
 ### Diagnostics
 

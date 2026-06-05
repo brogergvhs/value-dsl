@@ -3,8 +3,18 @@ package lsp
 import (
 	coreanalysis "github.com/brogergvhs/value-dsl/internal/analysis"
 
+	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
+
+// definition handles the textDocument/definition request.
+func (s *Server) definition(_ *glsp.Context, params *protocol.DefinitionParams) (any, error) {
+	document, result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
+	if !ok {
+		return []protocol.Location{}, nil
+	}
+	return resolveDefinition(params.TextDocument.URI, params.Position, s.navigationAnalysis(document.URI, result)), nil
+}
 
 func resolveDefinition(uri protocol.DocumentUri, position protocol.Position, result coreanalysis.Result) []protocol.Location {
 	occurrence, ok := occurrenceAtPosition(result, position)

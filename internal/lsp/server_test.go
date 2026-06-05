@@ -44,6 +44,10 @@ func TestInitializeAdvertisesFullTextSync(t *testing.T) {
 	if !ok || !definitionProvider {
 		t.Fatalf("expected definition support, got %+v", result.Capabilities.DefinitionProvider)
 	}
+	declarationProvider, ok := result.Capabilities.DeclarationProvider.(bool)
+	if !ok || !declarationProvider {
+		t.Fatalf("expected declaration support, got %+v", result.Capabilities.DeclarationProvider)
+	}
 	referencesProvider, ok := result.Capabilities.ReferencesProvider.(bool)
 	if !ok || !referencesProvider {
 		t.Fatalf("expected references support, got %+v", result.Capabilities.ReferencesProvider)
@@ -550,6 +554,36 @@ stakeholders Worker
 	}
 	if result[0].Range.Start.Line != 0 || result[0].Range.Start.Character != 12 {
 		t.Fatalf("unexpected definition range: %+v", result[0])
+	}
+}
+
+func TestDeclarationReusesDefinition(t *testing.T) {
+	server := NewServer()
+	documentText := `stakeholder Worker
+
+requirement R1
+system shall notify Worker
+`
+
+	server.documents.Set("file:///spec.dsl", 1, documentText)
+	server.analyzeDocument(server.documents.Set("file:///spec.dsl", 1, documentText))
+
+	resultValue, err := server.declaration(&glsp.Context{}, &protocol.DeclarationParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: "file:///spec.dsl"},
+			Position:     protocol.Position{Line: 3, Character: 20},
+		},
+	})
+	if err != nil {
+		t.Fatalf("declaration() error = %v", err)
+	}
+
+	result, ok := resultValue.([]protocol.Location)
+	if !ok {
+		t.Fatalf("unexpected declaration result type: %T", resultValue)
+	}
+	if len(result) != 1 || result[0].Range.Start.Line != 0 || result[0].Range.Start.Character != 12 {
+		t.Fatalf("expected declaration to reuse definition location, got %+v", result)
 	}
 }
 

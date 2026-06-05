@@ -11,8 +11,18 @@ import (
 	"github.com/brogergvhs/value-dsl/internal/sourcepos"
 	"github.com/brogergvhs/value-dsl/internal/values"
 
+	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
+
+// hover handles the textDocument/hover request.
+func (s *Server) hover(_ *glsp.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
+	document, result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
+	if !ok {
+		return nil, nil
+	}
+	return resolveHover(document.Text, params.Position, s.navigationAnalysis(document.URI, result)), nil
+}
 
 func resolveHover(text string, position protocol.Position, result coreanalysis.Result) *protocol.Hover {
 	lines := tokenLines(text, result)

@@ -10,8 +10,18 @@ import (
 	"github.com/brogergvhs/value-dsl/internal/model"
 	"github.com/brogergvhs/value-dsl/internal/sourcepos"
 
+	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
+
+// documentSymbol handles the textDocument/documentSymbol request.
+func (s *Server) documentSymbol(_ *glsp.Context, params *protocol.DocumentSymbolParams) (any, error) {
+	document, result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
+	if !ok {
+		return []protocol.DocumentSymbol{}, nil
+	}
+	return buildDocumentSymbols(s.navigationAnalysis(document.URI, result)), nil
+}
 
 func buildDocumentSymbols(result coreanalysis.Result) []protocol.DocumentSymbol {
 	if result.Index == nil || result.Index.Model == nil {
