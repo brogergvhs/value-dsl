@@ -10,12 +10,17 @@ analysis layers are deterministic transformations over their inputs. The LSP
 server adds state at the editor boundary: open documents, debounce,
 analysis caching, and workspace loading.
 
-## Pipeline
+## Runtime Pipeline
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "10px"}} }%%
-flowchart
-  T[Text] --> Tok["Tokenizer\ngrammar/match.go"]
+flowchart TD
+  SRC["DSL source files / stdin / editor buffer"]
+  T["Combined text\n+ source file map"]
+  SRC --> W["Workspace loader\nworkspace/workspace.go"]
+  SRC --> T
+  W --> T
+  T --> Tok["Tokenizer\ngrammar/match.go"]
   Tok --> P["Parser\nparser/ast_builder.go"]
   P --> PR["ParseResult\nAST + token lines + parse diagnostics + references"]
   PR --> SB["Semantic Builder\nsemantic/builder.go"]
@@ -26,8 +31,16 @@ flowchart
   CA --> CR[Conflict Results]
   PR & SM & D & CR --> DI["DocIndex\ndocindex/index.go"]
   DI --> R["Analysis Result\nanalysis/result.go"]
-  R --> CLI["CLI\ncmd/dsl-cli/"]
-  R --> LSP["LSP Server\nlsp/server.go"]
+
+  R --> CLI["CLI commands\ncmd/dsl-cli/"]
+  R --> LSP["LSP server\nlsp/server.go"]
+  PR --> F["Formatter\nformatting/format.go"]
+  F --> FT["Formatted DSL text"]
+  SM --> EX["JSON export\nioformat.FromModel"]
+  EX --> JSON["JSON document"]
+  IMP["JSON import\nioformat.Decode"] --> DSL["Generated DSL text\nioformat.ToDSL"]
+  DSL --> F
+  FT -->|import validation| Tok
 ```
 
 `analysis.Run()` orchestrates the canonical pipeline. It first builds a
@@ -37,34 +50,73 @@ conflict analysis only when `Options.BuildConflicts` is enabled, and rebuilds
 the index with the AST, token lines, semantic model, parse diagnostics,
 validation diagnostics, conflicts, and parser references.
 
+The workspace loader is the file boundary for normal CLI and LSP analysis. It
+combines a `main.dsl` workspace into one source string and records source-file
+ranges so diagnostics can be mapped back to their original files. Standalone
+files, `_lone` files, stdin, and editor buffers outside a workspace bypass that
+merge step.
+
 The CLI consumes the resulting `analysis.Result`: `validate` reports
 diagnostics, `analyze` enables conflict generation and prints conflicts, and
-other commands use the same parser/analysis surface where needed. The LSP server
-also consumes `analysis.Result`, but caches it per open document and uses
-fallback navigation data from the last good index when the current text is
-temporarily invalid.
+`export` converts the semantic model through `ioformat`. `import` runs in the
+opposite direction: JSON is decoded into an interchange document, rendered back
+to DSL text, formatted, and then analyzed for validation. The LSP server also
+consumes `analysis.Result`, but caches it per open document and uses fallback
+navigation data from the last good index when the current text is temporarily
+invalid.
+
+## Editor Grammar Pipeline
+
+```mermaid
+%%{init: {"themeVariables": {"fontSize": "10px"}} }%%
+flowchart TD
+  GG["Go grammar\ninternal/grammar/grammar.go"]
+  GG --> GE["Grammar export\ncmd/dsl-langspec-export"]
+  GE --> GJ["generated/grammar.json"]
+  GJ --> TS["Tree-sitter sync\ntools/tree-sitter-value-dsl"]
+  TS --> TSA["Tree-sitter assets\nparser.c + queries"]
+  GJ --> VSS["VS Code syntax sync\ntools/editors/vscode/scripts"]
+  VSS --> VSA["VS Code TextMate grammar\nsyntaxes/value-dsl.tmLanguage.json"]
+
+  LSP["dsl-lsp\ncmd/dsl-lsp"] --> VSE["VS Code extension\ntools/editors/vscode"]
+  VSA --> VSE
+```
+
+Tree-sitter and VS Code syntax highlighting are separate from the runtime
+parser. Both are generated from the same Go grammar source through
+`cmd/dsl-langspec-export` and `generated/grammar.json`: Tree-sitter uses the
+scripts in `tools/tree-sitter-value-dsl`, while VS Code uses
+`tools/editors/vscode/scripts/generate-textmate.mjs` to regenerate its TextMate
+grammar. The CLI and LSP do not parse with either editor grammar.
+
+The VS Code extension is an editor boundary around the same `dsl-lsp` server.
+Its syntax layer comes from the generated TextMate grammar, and its language
+features come from spawning `dsl-lsp` through the LSP client.
 
 ## Package Inventory
 
-| Package                   | Purpose                                            | Key exported types                                                         |
-| ------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------- |
-| `internal/grammar`        | DSL grammar definition and runtime compilation     | `Spec`, `CompiledSpec`, `TokenLine`                                        |
-| `internal/parser`         | AST construction from token lines                  | `ParseResult`, `ReferenceOccurrence`                                       |
-| `internal/ast`            | AST node types                                     | `DocumentNode`, `DeclarationNode`, `GenericNode`                           |
-| `internal/semantic`       | Semantic model builder                             | `SemanticModel`, `Build()`                                                 |
-| `internal/model`          | Shared domain types                                | `Requirement`, `Stakeholder`, `Value`, `AssignmentEntry`, `ConflictResult` |
-| `internal/validation`     | Semantic validation and diagnostics                | `Validate()`, `Diagnostic`, `DiagnosticCode`                               |
-| `internal/analysis`       | Analysis pipeline orchestration + conflict scoring | `Run()`, `AnalyzeConflicts()`, `ConflictScore()`                           |
-| `internal/docindex`       | Shared analysis/navigation index                   | `Document`, `Build()`                                                      |
-| `internal/lsp`            | LSP server and feature handlers                    | `Server`, `NewServer()`                                                    |
-| `internal/formatting`     | DSL formatter                                      | `Format()`, `FormatForWrite()`                                             |
-| `internal/ioformat`       | Import/export interchange formats                  | `Document`, `Codec`, `Encode()`, `Decode()`                                |
-| `internal/values`         | Schwartz value registry and geometry               | `All()`, `Categories()`, `LookupByName()`                                  |
-| `internal/diagnostics`    | Diagnostic code catalog                            | `SpecFor()`                                                                |
-| `internal/sourcepos`      | Source position and UTF-16 conversion              | `Position`, `Range`                                                        |
-| `cmd/dsl-cli`             | CLI entry point                                    | Cobra root command                                                         |
-| `cmd/dsl-lsp`             | LSP server entry point                             | —                                                                          |
-| `cmd/dsl-langspec-export` | Grammar JSON export                                | —                                                                          |
+| Package                       | Purpose                                            | Key exported types                                                         |
+| ----------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------- |
+| `internal/grammar`            | DSL grammar definition and runtime compilation     | `Spec`, `CompiledSpec`, `TokenLine`                                        |
+| `internal/parser`             | AST construction from token lines                  | `ParseResult`, `ReferenceOccurrence`                                       |
+| `internal/ast`                | AST node types                                     | `DocumentNode`, `DeclarationNode`, `GenericNode`                           |
+| `internal/semantic`           | Semantic model builder                             | `SemanticModel`, `Build()`                                                 |
+| `internal/model`              | Shared domain types                                | `Requirement`, `Stakeholder`, `Value`, `AssignmentEntry`, `ConflictResult` |
+| `internal/validation`         | Semantic validation and diagnostics                | `Validate()`, `Diagnostic`, `DiagnosticCode`                               |
+| `internal/analysis`           | Analysis pipeline orchestration + conflict scoring | `Run()`, `AnalyzeConflicts()`, `ConflictScore()`                           |
+| `internal/docindex`           | Shared analysis/navigation index                   | `Document`, `Build()`                                                      |
+| `internal/lsp`                | LSP server and feature handlers                    | `Server`, `NewServer()`                                                    |
+| `internal/formatting`         | DSL formatter                                      | `Format()`, `FormatForWrite()`                                             |
+| `internal/ioformat`           | Import/export interchange formats                  | `Document`, `Codec`, `Encode()`, `Decode()`                                |
+| `internal/workspace`          | Multi-file workspace loading and source mapping    | `Document`, `LoadDocument()`, `LoadDocumentForOpenFile()`                  |
+| `internal/values`             | Schwartz value registry and geometry               | `All()`, `Categories()`, `LookupByName()`                                  |
+| `internal/diagnostics`        | Diagnostic code catalog                            | `SpecFor()`                                                                |
+| `internal/sourcepos`          | Source position and UTF-16 conversion              | `Position`, `Range`                                                        |
+| `cmd/dsl-cli`                 | CLI entry point                                    | Cobra root command                                                         |
+| `cmd/dsl-lsp`                 | LSP server entry point                             | —                                                                          |
+| `cmd/dsl-langspec-export`     | Grammar JSON export                                | —                                                                          |
+| `tools/tree-sitter-value-dsl` | Generated editor grammar and query assets          | `grammar.js`, `parser.c`, `queries/*.scm`                                  |
+| `tools/editors/vscode`        | VS Code extension and generated TextMate grammar   | `extension.ts`, `syntaxes/value-dsl.tmLanguage.json`                       |
 
 ## Design Principles
 
