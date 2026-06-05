@@ -52,6 +52,7 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 | `textDocument/definition`          | Go to definition          | Workspace-aware declaration lookup         |
 | `textDocument/references`          | Find references           | Workspace-aware references                 |
 | `textDocument/rename`              | Rename                    | Produces workspace edits after validation  |
+| `textDocument/documentHighlight`   | Document highlight        | Highlights declaration and references      |
 | `textDocument/documentSymbol`      | Document symbols          | Outline data for declarations and children |
 | `textDocument/formatting`          | Format document           | Uses the DSL formatter                     |
 | `textDocument/semanticTokens/full` | Semantic tokens           | Full semantic token response               |
@@ -69,7 +70,6 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 | `textDocument/signatureHelp`             | Signature help              | Not implemented                               |
 | `textDocument/typeDefinition`            | Go to type definition       | Not applicable to current DSL model           |
 | `textDocument/implementation`            | Go to implementation        | Not applicable to current DSL model           |
-| `textDocument/documentHighlight`         | Highlight symbol references | Not implemented                               |
 | `textDocument/codeAction`                | Code actions                | Not implemented                               |
 | `textDocument/codeLens`                  | Code lens                   | Not implemented                               |
 | `textDocument/documentLink`              | Document links              | Not implemented                               |
@@ -130,6 +130,11 @@ declarations and definitions are the same source location.
 ### Find References
 
 `textDocument/references` — lists all locations where the symbol under the cursor is used across the workspace.
+
+### Document Highlight
+
+`textDocument/documentHighlight` — highlights the declaration and references of
+the symbol under the cursor in the current document.
 
 ### Rename
 

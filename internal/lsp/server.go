@@ -79,6 +79,7 @@ func (s *Server) newHandler() protocol.Handler {
 		TextDocumentReferences:         s.references,
 		TextDocumentRename:             s.rename,
 		TextDocumentDocumentSymbol:     s.documentSymbol,
+		TextDocumentDocumentHighlight:  s.documentHighlight,
 		TextDocumentFormatting:         s.format,
 		TextDocumentSemanticTokensFull: s.semanticTokens,
 	}
@@ -97,6 +98,7 @@ func (s *Server) initialize(_ *glsp.Context, _ *protocol.InitializeParams) (any,
 	capabilities.ReferencesProvider = true
 	capabilities.RenameProvider = true
 	capabilities.DocumentSymbolProvider = true
+	capabilities.DocumentHighlightProvider = true
 	capabilities.DocumentFormattingProvider = true
 	capabilities.SemanticTokensProvider = protocol.SemanticTokensOptions{
 		Legend: protocol.SemanticTokensLegend{

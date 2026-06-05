@@ -60,6 +60,10 @@ func TestInitializeAdvertisesFullTextSync(t *testing.T) {
 	if !ok || !documentSymbolProvider {
 		t.Fatalf("expected document symbol support, got %+v", result.Capabilities.DocumentSymbolProvider)
 	}
+	documentHighlightProvider, ok := result.Capabilities.DocumentHighlightProvider.(bool)
+	if !ok || !documentHighlightProvider {
+		t.Fatalf("expected document highlight support, got %+v", result.Capabilities.DocumentHighlightProvider)
+	}
 	formattingProvider, ok := result.Capabilities.DocumentFormattingProvider.(bool)
 	if !ok || !formattingProvider {
 		t.Fatalf("expected formatting support, got %+v", result.Capabilities.DocumentFormattingProvider)
@@ -612,6 +616,40 @@ stakeholders Worker
 
 	if len(result) != 3 {
 		t.Fatalf("expected declaration plus two references, got %+v", result)
+	}
+}
+
+func TestDocumentHighlightReturnsDeclarationAndReferences(t *testing.T) {
+	server := NewServer()
+	documentText := `stakeholder Worker
+
+requirement R1
+system shall notify Worker
+stakeholders Worker
+`
+
+	server.documents.Set("file:///spec.dsl", 1, documentText)
+	server.analyzeDocument(server.documents.Set("file:///spec.dsl", 1, documentText))
+
+	highlights, err := server.documentHighlight(&glsp.Context{}, &protocol.DocumentHighlightParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: "file:///spec.dsl"},
+			Position:     protocol.Position{Line: 3, Character: 20},
+		},
+	})
+	if err != nil {
+		t.Fatalf("documentHighlight() error = %v", err)
+	}
+	if len(highlights) != 3 {
+		t.Fatalf("expected declaration plus two references, got %+v", highlights)
+	}
+	if highlights[0].Range.Start.Line != 0 || highlights[0].Kind == nil || *highlights[0].Kind != protocol.DocumentHighlightKindWrite {
+		t.Fatalf("expected write highlight on declaration, got %+v", highlights[0])
+	}
+	for _, highlight := range highlights[1:] {
+		if highlight.Kind == nil || *highlight.Kind != protocol.DocumentHighlightKindRead {
+			t.Fatalf("expected read highlight on reference, got %+v", highlight)
+		}
 	}
 }
 
