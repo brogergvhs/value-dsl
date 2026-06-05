@@ -1,0 +1,176 @@
+name: Publish VS Code Extension
+
+on:
+  # Disabled for now because Marketplace publishing requires VSCE_PAT.
+  # Re-enable the tag trigger below once the repository has that secret:
+  #
+  # push:
+  #   tags:
+  #     - "v*"
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Actually run the VS Code Marketplace publish jobs"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-binaries:
+    name: Build dsl-lsp (${{ matrix.target }})
+    if: ${{ inputs.publish }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            target: linux-x64
+            binary: dsl-lsp
+          - goos: linux
+            goarch: arm64
+            target: linux-arm64
+            binary: dsl-lsp
+          - goos: darwin
+            goarch: amd64
+            target: darwin-x64
+            binary: dsl-lsp
+          - goos: darwin
+            goarch: arm64
+            target: darwin-arm64
+            binary: dsl-lsp
+          - goos: windows
+            goarch: amd64
+            target: win32-x64
+            binary: dsl-lsp.exe
+          - goos: windows
+            goarch: arm64
+            target: win32-arm64
+            binary: dsl-lsp.exe
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build dsl-lsp
+        run: |
+          mkdir -p tools/editors/vscode/bin
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
+            go build -trimpath \
+            -ldflags="-s -w -X github.com/brogergvhs/value-dsl/internal/version.Version=${{ steps.version.outputs.version }} -X github.com/brogergvhs/value-dsl/internal/version.Commit=${GITHUB_SHA::7} -X github.com/brogergvhs/value-dsl/internal/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -o tools/editors/vscode/bin/${{ matrix.binary }} \
+            ./cmd/dsl-lsp
+          if [ "${{ matrix.goos }}" != "windows" ]; then
+            chmod +x tools/editors/vscode/bin/${{ matrix.binary }}
+          fi
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: tools/editors/vscode/bin/
+
+  publish-platform:
+    name: Publish (${{ matrix.target }})
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      matrix:
+        include:
+          - target: linux-x64
+          - target: linux-arm64
+          - target: darwin-x64
+          - target: darwin-arm64
+          - target: win32-x64
+          - target: win32-arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: tools/editors/vscode/package-lock.json
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: tools/editors/vscode/bin/
+
+      - name: Ensure executable
+        run: chmod +x tools/editors/vscode/bin/dsl-lsp || true
+
+      - name: Install dependencies
+        working-directory: tools/editors/vscode
+        run: npm ci
+
+      - name: Set extension version
+        working-directory: tools/editors/vscode
+        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
+
+      - name: Build extension
+        working-directory: tools/editors/vscode
+        run: npm run build
+
+      - name: Publish platform package
+        working-directory: tools/editors/vscode
+        run: npx vsce publish --target ${{ matrix.target }} -p "$VSCE_PAT"
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+  publish-universal:
+    name: Publish (universal)
+    needs: publish-platform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: tools/editors/vscode/package-lock.json
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        working-directory: tools/editors/vscode
+        run: npm ci
+
+      - name: Set extension version
+        working-directory: tools/editors/vscode
+        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
+
+      - name: Build extension
+        working-directory: tools/editors/vscode
+        run: npm run build
+
+      - name: Publish universal package
+        working-directory: tools/editors/vscode
+        run: npx vsce publish -p "$VSCE_PAT"
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}

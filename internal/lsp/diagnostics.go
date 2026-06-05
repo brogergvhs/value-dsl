@@ -20,7 +20,7 @@ func diagnosticsFromResult(result coreanalysis.Result) []protocol.Diagnostic {
 		if result.BuildErr != nil {
 			return []protocol.Diagnostic{buildErrorDiagnostic(nil, result.BuildErr.Error())}
 		}
-		return nil
+		return []protocol.Diagnostic{}
 	}
 
 	diagnostics := make([]protocol.Diagnostic, 0, len(result.Index.ParseDiagnostics)+len(result.Index.Diagnostics)+1)

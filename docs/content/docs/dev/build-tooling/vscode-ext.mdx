@@ -1,0 +1,46 @@
+---
+title: 'VS Code Extension'
+description: 'VS Code extension package layout, bundled LSP binaries, and current publishing status.'
+---
+
+The VS Code extension lives in:
+
+```text
+tools/editors/vscode
+```
+
+Its TextMate grammar is generated from `generated/grammar.json` using the `vscode/scripts/`, so
+`bun run build` refreshes syntax highlighting before compiling the TypeScript
+extension.
+
+## Marketplace Package Layout
+
+The `.github/workflows/vscode-publish.yml` workflow is currently manual-only
+and guarded by `VSCE_PAT`. When enabled, it can publish Marketplace packages
+for:
+
+| Target         | Bundled LSP binary |
+| -------------- | ------------------ |
+| `linux-x64`    | `dsl-lsp`          |
+| `linux-arm64`  | `dsl-lsp`          |
+| `darwin-x64`   | `dsl-lsp`          |
+| `darwin-arm64` | `dsl-lsp`          |
+| `win32-x64`    | `dsl-lsp.exe`      |
+| `win32-arm64`  | `dsl-lsp.exe`      |
+| universal      | none               |
+
+Platform packages start the bundled LSP executable from `bin/`. The universal
+package is the fallback package and resolves `dsl-lsp` from `dsl.lsp.path`, the
+development repo `bin/` directory, or `PATH`.
+
+Publishing requires a VS Code Marketplace publisher matching
+`tools/editors/vscode/package.json` and a repository secret named `VSCE_PAT`.
+After that secret exists, re-enable the `push` tag trigger in
+`.github/workflows/vscode-publish.yml`.
+
+<Callout type="warn">
+  To get the mentioned `VSCE_PAT` one has to have an Azure (hak-tua) DevOps org.
+  I tried and the whole process was painfully unpleasant so I couldn't be
+  bothered to actually get it. Thus, the flow cannot run currently and one can
+  only use the extension by pulling the repo locally.
+</Callout>

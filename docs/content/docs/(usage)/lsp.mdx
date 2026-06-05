@@ -48,53 +48,6 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 | Diagnostics      | Real-time errors and warnings              |
 | Semantic Tokens  | Structured syntax highlighting roles       |
 
-## Editor Setup
-
-### Neovim
-
-Using [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig):
-
-```lua
-local lspconfig = require('lspconfig')
-local configs = require('lspconfig.configs')
-
-if not configs.value_dsl then
-  configs.value_dsl = {
-    default_config = {
-      cmd = { '/path/to/dsl-lsp/executable' },
-      filetypes = { 'dsl' },
-      root_dir = lspconfig.util.find_git_ancestor,
-      settings = {},
-    },
-  }
-end
-
-lspconfig.value_dsl.setup {}
-```
-
-Add filetype detection if needed:
-
-```lua
-vim.filetype.add({ extension = { dsl = 'dsl' } })
-```
-
-### Generic JSON
-
-For editors that accept a JSON LSP configuration:
-
-```json
-{
-  "languageserver": {
-    "value-dsl": {
-      "command": "/path/to/dsl-lsp/executable",
-      "args": [],
-      "filetypes": ["dsl"],
-      "rootPatterns": [".git"]
-    }
-  }
-}
-```
-
 ## Feature Details
 
 ### Hover

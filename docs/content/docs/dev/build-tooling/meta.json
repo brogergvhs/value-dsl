@@ -1,0 +1,11 @@
+{
+  "title": "Build & Tooling",
+  "pages": [
+    "index",
+    "entry-points",
+    "makefile-targets",
+    "generated-artifacts",
+    "ci-releases",
+    "vscode-ext"
+  ]
+}

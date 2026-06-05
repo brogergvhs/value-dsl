@@ -1,0 +1,44 @@
+---
+title: 'Entry Points'
+description: 'Command packages, binaries, and version metadata.'
+---
+
+## Binaries
+
+| Command                   | Binary           | Makefile target       |
+| ------------------------- | ---------------- | --------------------- |
+| `cmd/dsl-cli`             | `./bin/dsl`      | `make build`          |
+| `cmd/dsl-cli` + LSP tag   | `./bin/dsl-full` | `make build-full`     |
+| `cmd/dsl-lsp`             | `./bin/dsl-lsp`  | `make lsp`            |
+| `cmd/dsl-langspec-export` | _(not a binary)_ | `make grammar-export` |
+
+`cmd/dsl-langspec-export` writes `generated/grammar.json` and is only used
+internally by the editor grammar pipelines.
+
+`make build` intentionally builds the standalone CLI without the embedded
+`dsl lsp` command, which reduces its size by ~45% (4.3Mb vs 7.6Mb).
+
+Use `make build-full` when you want one binary that includes both CLI commands
+and the language server as `dsl-full lsp`. For a combined binary literally
+named `dsl`, run:
+
+```bash
+make build-full FULL_BIN=./bin/dsl
+```
+
+The combined binary is larger because Go links the CLI package graph and the
+GLSP/LSP package graph into the same executable.
+
+## Build Flags
+
+All binary build targets use:
+
+```text
+-trimpath -ldflags "-s -w"
+```
+
+This removes local path metadata, the symbol table, and DWARF debug data.
+Override `GO_BUILD_FLAGS` or `GO_LDFLAGS` when you need debuggable binaries.
+
+Release builds inject version metadata into `internal/version`, so released
+binaries report tag, short commit, and build date through `--version`.

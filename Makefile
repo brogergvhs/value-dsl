@@ -13,12 +13,13 @@ LSP_BIN := ./bin/dsl-lsp
 
 TS_PARSER_DIR ?= $(HOME)/.local/share/nvim/lazy/nvim-treesitter/parser
 TS_PARSER_SO  := $(TS_PARSER_DIR)/value_dsl.so
+TS_QUERIES_DIR ?= $(HOME)/.config/nvim/queries/value_dsl
 
 FILE ?= examples/dsl/01_minimal_valid.dsl
 DOCKER ?= docker
 DOCKER_IMAGE ?= value-dsl:local
 
-.PHONY: help deps build build-full lsp run run-full test test-full fmt check clean parse validate analyze analyze-stdin docker-build docker-validate docker-analyze docker-lsp grammar-export langspec-export tree-sitter-sync tree-sitter-test tree-sitter tree-sitter-install full
+.PHONY: help deps build build-full lsp run run-full test test-full fmt check clean parse validate analyze analyze-stdin docker-build docker-validate docker-analyze docker-lsp grammar-export langspec-export tree-sitter-sync vscode-syntax-sync editor-sync tree-sitter-test tree-sitter tree-sitter-install full
 
 help:
 	@echo "Usage: make <target> [FILE=examples/dsl/01_minimal_valid.dsl]"
@@ -45,8 +46,10 @@ help:
 	@echo "  docker-lsp           Start standalone LSP through Docker over stdio"
 	@echo "  grammar-export       Write generated/grammar.json from the current DSL grammar"
 	@echo "  tree-sitter-sync     Refresh generated/grammar.json, queries, and parser artifacts"
+	@echo "  vscode-syntax-sync   Refresh generated VS Code TextMate grammar"
+	@echo "  editor-sync          Refresh Tree-sitter and VS Code editor artifacts"
 	@echo "  tree-sitter-test     Run Tree-sitter drift checks and corpus tests"
-	@echo "  tree-sitter-install  Compile parser.so into TS_PARSER_DIR ($(TS_PARSER_DIR))"
+	@echo "  tree-sitter-install  Compile parser.so and install Neovim queries"
 	@echo "  tree-sitter          Run the full Tree-sitter generation, verification, and install pipeline"
 	@echo "  full                 Build CLI, LSP, regenerate Tree-sitter artifacts, and run tests"
 
@@ -121,6 +124,12 @@ tree-sitter-sync:
 	go run ./cmd/dsl-langspec-export
 	cd ./tools/tree-sitter-value-dsl && npm run generate
 
+vscode-syntax-sync: grammar-export
+	@command -v node >/dev/null 2>&1 || { echo "error: node not found"; exit 1; }
+	cd ./tools/editors/vscode && npm run generate:syntax
+
+editor-sync: tree-sitter-sync vscode-syntax-sync
+
 tree-sitter-test:
 	@command -v npm >/dev/null 2>&1 || { echo "error: npm not found"; exit 1; }
 	cd ./tools/tree-sitter-value-dsl && npm test
@@ -129,9 +138,12 @@ tree-sitter-install:
 	@if [ ! -d "$(TS_PARSER_DIR)" ]; then \
 		echo "skip: $(TS_PARSER_DIR) not found (set TS_PARSER_DIR to override)"; \
 	else \
-		cd ./tools/tree-sitter-value-dsl && tree-sitter build -o "$(TS_PARSER_SO)"; \
+		cd ./tools/tree-sitter-value-dsl && tree-sitter build -o "$(TS_PARSER_SO)" || exit 1; \
 		echo "installed parser -> $(TS_PARSER_SO)"; \
 	fi
+	install -d "$(TS_QUERIES_DIR)"
+	install -m 0644 ./tools/tree-sitter-value-dsl/queries/*.scm "$(TS_QUERIES_DIR)/"
+	@echo "installed queries -> $(TS_QUERIES_DIR)"
 
 tree-sitter: grammar-export
 	@command -v npm >/dev/null 2>&1 || { echo "error: npm not found"; exit 1; }
@@ -141,4 +153,4 @@ tree-sitter: grammar-export
 	cd ./tools/tree-sitter-value-dsl && tree-sitter test
 	$(MAKE) tree-sitter-install
 
-full: test test-full build build-full lsp tree-sitter
+full: test test-full build build-full lsp tree-sitter vscode-syntax-sync

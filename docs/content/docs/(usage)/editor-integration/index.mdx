@@ -1,0 +1,30 @@
+---
+title: 'Editor Integration'
+description: 'How Value DSL editor support is split between Tree-sitter, TextMate syntax, and the language server.'
+---
+
+Editor support is built from two independent layers:
+
+| Layer          | Provides                                                                     | Used by                                      |
+| -------------- | ---------------------------------------------------------------------------- | -------------------------------------------- |
+| Syntax grammar | Fast file-local highlighting                                                 | Neovim Tree-sitter, VS Code TextMate grammar |
+| `dsl-lsp`      | Diagnostics, completion, hover, symbols, references, rename, semantic tokens | Any editor with LSP support                  |
+
+The syntax grammar is useful immediately when a file opens. It does not need to
+understand the full workspace and still works while the file contains errors.
+
+The LSP runs the real parser, semantic builder, workspace loader, validation
+layer, and document index. It is the part that understands declarations across
+workspace files and reports semantic diagnostics.
+
+## Current State
+
+Neovim integration is available locally through the generated Tree-sitter
+grammar and a normal LSP configuration.
+
+VS Code integration exists in `tools/editors/vscode`. In theory it can be
+published as platform-specific Marketplace packages with a bundled `dsl-lsp`
+binary for each supported operating system and architecture (gh flow exists), plus a universal
+fallback package. In practice, publishing currently requires a `VSCE_PAT` from
+the Visual Studio Marketplace / Azure DevOps publisher flow, so the extension is
+not published and should be run from source.
