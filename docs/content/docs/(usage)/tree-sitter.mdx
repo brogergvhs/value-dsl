@@ -17,10 +17,16 @@ This compiles `parser.so` and copies it to the default (for me hehe) Neovim pars
 ~/.local/share/nvim/lazy/nvim-treesitter/parser/value_dsl.so
 ```
 
+It also installs the Neovim query files to:
+
+```
+~/.config/nvim/queries/value_dsl/
+```
+
 To install to a custom location:
 
 ```bash
-TS_PARSER_DIR=/your/path make tree-sitter-install
+TS_PARSER_DIR=/your/parser/path TS_QUERIES_DIR=/your/queries/value_dsl make tree-sitter-install
 ```
 
 ## Neovim Setup
@@ -44,7 +50,27 @@ Add filetype detection if not already set:
 
 ```lua
 vim.filetype.add({ extension = { dsl = 'dsl' } })
+vim.treesitter.language.register('value_dsl', 'dsl')
 ```
+
+<Callout type="info">
+  `TSInstall value_dsl` only installs the parser. Highlighting also needs
+  query files on Neovim's runtime path, normally under
+  `queries/value_dsl/highlights.scm`. Run `make tree-sitter-install` after
+  `make tree-sitter-sync` to install both the parser and the generated query
+  files.
+</Callout>
+
+If the parser is installed but highlighting is still blank, check these inside
+Neovim:
+
+```vim
+:set filetype?
+:InspectTree
+:lua print(vim.treesitter.language.get_lang(vim.bo.filetype))
+```
+
+Expected values are filetype `dsl` and Tree-sitter language `value_dsl`.
 
 ## Highlighted Token Types
 
