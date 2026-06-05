@@ -21,6 +21,17 @@ func TestDiagnosticsFromResultUsesBuildErrorLocationWhenAvailable(t *testing.T) 
 	}
 }
 
+func TestDiagnosticsFromResultReturnsEmptySliceForEmptyResult(t *testing.T) {
+	diagnostics := diagnosticsFromResult(coreanalysis.Result{})
+
+	if diagnostics == nil {
+		t.Fatal("expected empty diagnostics slice, got nil")
+	}
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %d", len(diagnostics))
+	}
+}
+
 func TestDiagnosticsFromResultIncludesStructuredParseDiagnosticsAndBuildError(t *testing.T) {
 	diagnostics := diagnosticsFromResult(coreanalysis.Result{
 		Index: docindex.Build(nil, nil, nil, []validation.Diagnostic{
