@@ -43,6 +43,7 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 | `initialized`                      | Initialization complete   | Accepted as a no-op                        |
 | `shutdown`                         | Server shutdown           | Cancels scheduled analysis                 |
 | `exit`                             | Process exit notification | Accepted as a no-op                        |
+| `workspace/symbol`                 | Workspace symbols         | Searches declarations in open workspaces   |
 | `textDocument/didOpen`             | Open document sync        | Runs analysis and publishes diagnostics    |
 | `textDocument/didChange`           | Change document sync      | Full-document sync with debounced analysis |
 | `textDocument/didClose`            | Close document sync       | Clears document state and diagnostics      |
@@ -82,7 +83,6 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 | `textDocument/diagnostic`                | Pull diagnostics            | Diagnostics are pushed instead                |
 | `textDocument/semanticTokens/range`      | Range semantic tokens       | Only full semantic tokens are implemented     |
 | `textDocument/semanticTokens/full/delta` | Delta semantic tokens       | Only full semantic tokens are implemented     |
-| `workspace/symbol`                       | Workspace symbols           | Not implemented                               |
 | `workspace/executeCommand`               | Server commands             | Not implemented                               |
 | `workspace/didChangeConfiguration`       | Config changes              | Not implemented                               |
 | `workspace/didChangeWatchedFiles`        | Watched file changes        | Not implemented                               |
@@ -158,6 +158,12 @@ Validation errors are reported to the editor as a user-visible message.
 | Value declaration                            | Constant |
 | Requirement declaration                      | Object   |
 | Requirement child (clause, action, metadata) | Property |
+
+### Workspace Symbols
+
+`workspace/symbol` — searches declarations known to the LSP server from open
+documents. If an open file belongs to a `main.dsl` workspace, results can
+include declarations from sibling workspace files.
 
 ### Formatting
 

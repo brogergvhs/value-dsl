@@ -36,6 +36,10 @@ func TestInitializeAdvertisesFullTextSync(t *testing.T) {
 	if syncOptions.OpenClose == nil || !*syncOptions.OpenClose {
 		t.Fatalf("expected openClose sync support, got %+v", syncOptions)
 	}
+	workspaceSymbolProvider, ok := result.Capabilities.WorkspaceSymbolProvider.(bool)
+	if !ok || !workspaceSymbolProvider {
+		t.Fatalf("expected workspace symbol support, got %+v", result.Capabilities.WorkspaceSymbolProvider)
+	}
 	hoverProvider, ok := result.Capabilities.HoverProvider.(bool)
 	if !ok || !hoverProvider {
 		t.Fatalf("expected hover support, got %+v", result.Capabilities.HoverProvider)
@@ -298,6 +302,44 @@ stakeholders Worker, SafetyOfficer
 	}
 	if tokens == nil || len(tokens.Data) == 0 {
 		t.Fatalf("expected workspace-backed semantic tokens")
+	}
+
+	symbols, err := server.workspaceSymbol(&glsp.Context{}, &protocol.WorkspaceSymbolParams{Query: "Worker"})
+	if err != nil {
+		t.Fatalf("workspaceSymbol() error = %v", err)
+	}
+	if len(symbols) != 1 || symbols[0].Name != "Worker" || symbols[0].Location.URI != stakeholdersURI {
+		t.Fatalf("expected Worker workspace symbol in stakeholders.dsl, got %+v", symbols)
+	}
+}
+
+func TestWorkspaceSymbolReturnsOpenDocumentDeclarations(t *testing.T) {
+	server := NewServer()
+	documentText := `stakeholder Worker
+value privacy_pref = 1.58, 0.91
+
+requirement R1
+system shall notify Worker
+stakeholders Worker
+`
+
+	server.documents.Set("file:///spec.dsl", 1, documentText)
+	server.analyzeDocument(server.documents.Set("file:///spec.dsl", 1, documentText))
+
+	symbols, err := server.workspaceSymbol(&glsp.Context{}, &protocol.WorkspaceSymbolParams{Query: ""})
+	if err != nil {
+		t.Fatalf("workspaceSymbol() error = %v", err)
+	}
+	if len(symbols) != 3 {
+		t.Fatalf("expected stakeholder, value, and requirement symbols, got %+v", symbols)
+	}
+
+	filtered, err := server.workspaceSymbol(&glsp.Context{}, &protocol.WorkspaceSymbolParams{Query: "privacy"})
+	if err != nil {
+		t.Fatalf("workspaceSymbol(query) error = %v", err)
+	}
+	if len(filtered) != 1 || filtered[0].Name != "privacy_pref" || filtered[0].Kind != protocol.SymbolKindConstant {
+		t.Fatalf("expected filtered value symbol, got %+v", filtered)
 	}
 }
 

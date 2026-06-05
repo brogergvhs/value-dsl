@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"hash/fnv"
+	"sort"
 	"sync"
 )
 
@@ -57,6 +58,20 @@ func (s *Store) Delete(uri string) {
 	defer s.mu.Unlock()
 
 	delete(s.documents, uri)
+}
+
+func (s *Store) All() []Document {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	documents := make([]Document, 0, len(s.documents))
+	for _, document := range s.documents {
+		documents = append(documents, document)
+	}
+	sort.Slice(documents, func(i, j int) bool {
+		return documents[i].URI < documents[j].URI
+	})
+	return documents
 }
 
 func newDocument(uri string, version int32, text string) Document {

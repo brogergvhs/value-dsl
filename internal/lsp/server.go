@@ -69,6 +69,7 @@ func (s *Server) newHandler() protocol.Handler {
 		Initialized:                    s.initialized,
 		Shutdown:                       s.shutdown,
 		Exit:                           s.exit,
+		WorkspaceSymbol:                s.workspaceSymbol,
 		TextDocumentDidOpen:            s.didOpen,
 		TextDocumentDidChange:          s.didChange,
 		TextDocumentDidClose:           s.didClose,
@@ -91,6 +92,7 @@ func (s *Server) initialize(_ *glsp.Context, _ *protocol.InitializeParams) (any,
 	openClose := true
 	change := protocol.TextDocumentSyncKindFull
 	capabilities.TextDocumentSync = protocol.TextDocumentSyncOptions{OpenClose: &openClose, Change: &change}
+	capabilities.WorkspaceSymbolProvider = true
 	capabilities.CompletionProvider = &protocol.CompletionOptions{}
 	capabilities.HoverProvider = true
 	capabilities.DeclarationProvider = true
