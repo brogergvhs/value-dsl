@@ -55,6 +55,8 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 | `textDocument/rename`              | Rename                    | Produces workspace edits after validation  |
 | `textDocument/documentHighlight`   | Document highlight        | Highlights declaration and references      |
 | `textDocument/documentSymbol`      | Document symbols          | Outline data for declarations and children |
+| `textDocument/foldingRange`        | Folding ranges            | Folds declaration groups and blocks        |
+| `textDocument/selectionRange`      | Selection ranges          | Expands token selections to fold blocks    |
 | `textDocument/formatting`          | Format document           | Uses the DSL formatter                     |
 | `textDocument/semanticTokens/full` | Semantic tokens           | Full semantic token response               |
 | `textDocument/publishDiagnostics`  | Diagnostics               | Server-pushed diagnostics notification     |
@@ -76,8 +78,6 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 | `textDocument/documentLink`              | Document links              | Not implemented                               |
 | `textDocument/rangeFormatting`           | Format selection            | Not implemented                               |
 | `textDocument/onTypeFormatting`          | Format while typing         | Not implemented                               |
-| `textDocument/foldingRange`              | Folding ranges              | Not implemented                               |
-| `textDocument/selectionRange`            | Selection ranges            | Not implemented                               |
 | `textDocument/linkedEditingRange`        | Linked editing              | Not implemented                               |
 | `textDocument/inlayHint`                 | Inlay hints                 | Not implemented                               |
 | `textDocument/diagnostic`                | Pull diagnostics            | Diagnostics are pushed instead                |
@@ -164,6 +164,17 @@ Validation errors are reported to the editor as a user-visible message.
 `workspace/symbol` — searches declarations known to the LSP server from open
 documents. If an open file belongs to a `main.dsl` workspace, results can
 include declarations from sibling workspace files.
+
+### Folding Ranges
+
+`textDocument/foldingRange` — folds contiguous stakeholder declarations,
+contiguous value declarations, and each requirement or assignment block.
+
+### Selection Ranges
+
+`textDocument/selectionRange` — expands from the token under the cursor to the
+same enclosing declaration group or requirement/assignment block used by folding
+ranges.
 
 ### Formatting
 

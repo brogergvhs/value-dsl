@@ -81,6 +81,8 @@ func (s *Server) newHandler() protocol.Handler {
 		TextDocumentRename:             s.rename,
 		TextDocumentDocumentSymbol:     s.documentSymbol,
 		TextDocumentDocumentHighlight:  s.documentHighlight,
+		TextDocumentFoldingRange:       s.foldingRange,
+		TextDocumentSelectionRange:     s.selectionRange,
 		TextDocumentFormatting:         s.format,
 		TextDocumentSemanticTokensFull: s.semanticTokens,
 	}
@@ -101,6 +103,8 @@ func (s *Server) initialize(_ *glsp.Context, _ *protocol.InitializeParams) (any,
 	capabilities.RenameProvider = true
 	capabilities.DocumentSymbolProvider = true
 	capabilities.DocumentHighlightProvider = true
+	capabilities.FoldingRangeProvider = true
+	capabilities.SelectionRangeProvider = true
 	capabilities.DocumentFormattingProvider = true
 	capabilities.SemanticTokensProvider = protocol.SemanticTokensOptions{
 		Legend: protocol.SemanticTokensLegend{

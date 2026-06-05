@@ -68,6 +68,14 @@ func TestInitializeAdvertisesFullTextSync(t *testing.T) {
 	if !ok || !documentHighlightProvider {
 		t.Fatalf("expected document highlight support, got %+v", result.Capabilities.DocumentHighlightProvider)
 	}
+	foldingRangeProvider, ok := result.Capabilities.FoldingRangeProvider.(bool)
+	if !ok || !foldingRangeProvider {
+		t.Fatalf("expected folding range support, got %+v", result.Capabilities.FoldingRangeProvider)
+	}
+	selectionRangeProvider, ok := result.Capabilities.SelectionRangeProvider.(bool)
+	if !ok || !selectionRangeProvider {
+		t.Fatalf("expected selection range support, got %+v", result.Capabilities.SelectionRangeProvider)
+	}
 	formattingProvider, ok := result.Capabilities.DocumentFormattingProvider.(bool)
 	if !ok || !formattingProvider {
 		t.Fatalf("expected formatting support, got %+v", result.Capabilities.DocumentFormattingProvider)
@@ -304,6 +312,16 @@ stakeholders Worker, SafetyOfficer
 		t.Fatalf("expected workspace-backed semantic tokens")
 	}
 
+	folds, err := server.foldingRange(&glsp.Context{}, &protocol.FoldingRangeParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: equipmentURI},
+	})
+	if err != nil {
+		t.Fatalf("foldingRange() error = %v", err)
+	}
+	if len(folds) != 1 || folds[0].StartLine != 0 || folds[0].EndLine != 2 {
+		t.Fatalf("expected only equipment requirement fold with local line numbers, got %+v", folds)
+	}
+
 	symbols, err := server.workspaceSymbol(&glsp.Context{}, &protocol.WorkspaceSymbolParams{Query: "Worker"})
 	if err != nil {
 		t.Fatalf("workspaceSymbol() error = %v", err)
@@ -340,6 +358,88 @@ stakeholders Worker
 	}
 	if len(filtered) != 1 || filtered[0].Name != "privacy_pref" || filtered[0].Kind != protocol.SymbolKindConstant {
 		t.Fatalf("expected filtered value symbol, got %+v", filtered)
+	}
+}
+
+func TestFoldingRangeReturnsDeclarationGroupsAndBlocks(t *testing.T) {
+	server := NewServer()
+	documentText := `stakeholder Worker
+stakeholder Manager
+
+value privacy_pref = 1.58, 0.91
+value safety_pref = 0.42, 0.88
+
+requirement R1
+when Worker enters Zone
+system shall notify Worker
+stakeholders Worker
+
+assignment R1
+Worker -> privacy_pref
+Manager -> safety_pref
+`
+
+	server.documents.Set("file:///spec.dsl", 1, documentText)
+	server.analyzeDocument(server.documents.Set("file:///spec.dsl", 1, documentText))
+
+	folds, err := server.foldingRange(&glsp.Context{}, &protocol.FoldingRangeParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///spec.dsl"},
+	})
+	if err != nil {
+		t.Fatalf("foldingRange() error = %v", err)
+	}
+
+	want := [][2]protocol.UInteger{
+		{0, 1},
+		{3, 4},
+		{6, 9},
+		{11, 13},
+	}
+	if len(folds) != len(want) {
+		t.Fatalf("expected folds %v, got %+v", want, folds)
+	}
+	for i, fold := range folds {
+		if fold.StartLine != want[i][0] || fold.EndLine != want[i][1] {
+			t.Fatalf("fold %d = %+v, want start=%d end=%d", i, fold, want[i][0], want[i][1])
+		}
+	}
+}
+
+func TestSelectionRangeExpandsTokenToFoldBlock(t *testing.T) {
+	server := NewServer()
+	documentText := `stakeholder Worker
+stakeholder Manager
+
+value privacy_pref = 1.58, 0.91
+value safety_pref = 0.42, 0.88
+
+requirement R1
+when Worker enters Zone
+system shall notify Worker
+stakeholders Worker
+`
+
+	server.documents.Set("file:///spec.dsl", 1, documentText)
+	server.analyzeDocument(server.documents.Set("file:///spec.dsl", 1, documentText))
+
+	ranges, err := server.selectionRange(&glsp.Context{}, &protocol.SelectionRangeParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///spec.dsl"},
+		Positions: []protocol.Position{
+			{Line: 8, Character: 20},
+			{Line: 0, Character: 14},
+		},
+	})
+	if err != nil {
+		t.Fatalf("selectionRange() error = %v", err)
+	}
+	if len(ranges) != 2 {
+		t.Fatalf("expected one selection range per position, got %+v", ranges)
+	}
+	if ranges[0].Range.Start.Line != 8 || ranges[0].Parent == nil || ranges[0].Parent.Range.Start.Line != 6 || ranges[0].Parent.Range.End.Line != 9 {
+		t.Fatalf("expected token selection with requirement block parent, got %+v", ranges[0])
+	}
+	if ranges[1].Range.Start.Line != 0 || ranges[1].Parent == nil || ranges[1].Parent.Range.Start.Line != 0 || ranges[1].Parent.Range.End.Line != 1 {
+		t.Fatalf("expected stakeholder token selection with grouped declaration parent, got %+v", ranges[1])
 	}
 }
 
