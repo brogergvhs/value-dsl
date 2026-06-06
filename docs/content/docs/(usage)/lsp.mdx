@@ -66,29 +66,36 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 <details>
 <summary>Not implemented LSP capabilities</summary>
 
-| LSP method or capability                 | Feature                     | Notes                                         |
-| ---------------------------------------- | --------------------------- | --------------------------------------------- |
-| `textDocument/didSave`                   | Save notification           | Not needed for current analysis model         |
-| `textDocument/willSave`                  | Pre-save notification       | Not implemented                               |
-| `textDocument/willSaveWaitUntil`         | Pre-save edits              | Not implemented                               |
-| `completionItem/resolve`                 | Lazy completion details     | Completion items are returned fully populated |
-| `textDocument/signatureHelp`             | Signature help              | Not implemented                               |
-| `textDocument/typeDefinition`            | Go to type definition       | Not applicable to current DSL model           |
-| `textDocument/implementation`            | Go to implementation        | Not applicable to current DSL model           |
-| `textDocument/codeAction`                | Code actions                | Not implemented                               |
-| `textDocument/codeLens`                  | Code lens                   | Not implemented                               |
-| `textDocument/onTypeFormatting`          | Format while typing         | Not implemented                               |
-| `textDocument/linkedEditingRange`        | Linked editing              | Not implemented                               |
-| `textDocument/inlayHint`                 | Inlay hints                 | Not implemented                               |
-| `textDocument/diagnostic`                | Pull diagnostics            | Diagnostics are pushed instead                |
-| `textDocument/semanticTokens/range`      | Range semantic tokens       | Only full semantic tokens are implemented     |
-| `textDocument/semanticTokens/full/delta` | Delta semantic tokens       | Only full semantic tokens are implemented     |
-| `workspace/executeCommand`               | Server commands             | Not implemented                               |
-| `workspace/didChangeConfiguration`       | Config changes              | Not implemented                               |
-| `workspace/didChangeWatchedFiles`        | Watched file changes        | Not implemented                               |
-| `workspace/workspaceFolders`             | Workspace folder changes    | Not implemented                               |
-| `callHierarchy/*`                        | Call hierarchy              | Not applicable to current DSL model           |
-| `typeHierarchy/*`                        | Type hierarchy              | Not applicable to current DSL model           |
+| LSP method or capability                 | Feature                  | Notes                                               |
+| ---------------------------------------- | ------------------------ | --------------------------------------------------- |
+| `textDocument/didSave`                   | Save notification        | Not needed for current analysis model               |
+| `textDocument/willSave`                  | Pre-save notification    | Not implemented                                     |
+| `textDocument/willSaveWaitUntil`         | Pre-save edits           | Not implemented                                     |
+| `completionItem/resolve`                 | Lazy completion details  | Completion items are returned fully populated       |
+| `textDocument/signatureHelp`             | Signature help           | Not applicable to current DSL model                 |
+| `textDocument/typeDefinition`            | Go to type definition    | Not applicable to current DSL model                 |
+| `textDocument/implementation`            | Go to implementation     | Not applicable to current DSL model                 |
+| `textDocument/codeAction`                | Code actions             | Not implemented                                     |
+| `textDocument/codeLens`                  | Code lens                | Fairly useless currently                            |
+| `textDocument/onTypeFormatting`          | Format while typing      | Think its annoying                                  |
+| `textDocument/linkedEditingRange`        | Linked editing           | Downgrade over rename, so considered pointless      |
+| `textDocument/inlayHint`                 | Inlay hints              | Introduced in 3.17, but used glsp doesnt provide it |
+| `textDocument/diagnostic`                | Pull diagnostics         | Diagnostics are pushed instead                      |
+| `textDocument/semanticTokens/range`      | Range semantic tokens    | Only full semantic tokens are implemented           |
+| `textDocument/semanticTokens/full/delta` | Delta semantic tokens    | Only full semantic tokens are implemented           |
+| `workspace/executeCommand`               | Server commands          | Dont think is needed currently                      |
+| `workspace/didChangeConfiguration`       | Config changes           | Fairly useless in current state of LSP config       |
+| `workspace/didChangeWatchedFiles`        | Watched file changes     | Not implemented                                     |
+| `workspace/workspaceFolders`             | Workspace folder changes | Workspace loading already handled by dsl            |
+| `callHierarchy/*`                        | Call hierarchy           | Not applicable to current DSL model                 |
+| `typeHierarchy/*`                        | Type hierarchy           | Not applicable to current DSL model                 |
+
+<Callout type="info">
+  `textDocument/inlayHint` is not hard to implement as an extra handler on top
+  of the currently available 3.16 protocol in `glsp`, but it doesn't seem to
+  have any real benefits. Potentially: 1) show computed value categories
+  (already shown in `hover`). 2) show value conflict scores.
+</Callout>
 
 </details>
 
@@ -181,6 +188,14 @@ contiguous value declarations, and each requirement or assignment block.
 `textDocument/selectionRange` — expands from the token under the cursor to the
 same enclosing declaration group or requirement/assignment block used by folding
 ranges.
+
+### Linked Editing
+
+`textDocument/linkedEditingRange` — links same-document requirement IDs and
+their assignment header references while editing. The server returns the ranges;
+the editor decides whether to mirror typed edits. VS Code supports this when
+linked editing is enabled. Neovim's built-in LSP client does not currently apply
+the mirrored edit automatically, so use rename there.
 
 ### Formatting
 
