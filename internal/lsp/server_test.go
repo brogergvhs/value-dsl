@@ -80,6 +80,10 @@ func TestInitializeAdvertisesFullTextSync(t *testing.T) {
 	if !ok || !formattingProvider {
 		t.Fatalf("expected formatting support, got %+v", result.Capabilities.DocumentFormattingProvider)
 	}
+	rangeFormattingProvider, ok := result.Capabilities.DocumentRangeFormattingProvider.(bool)
+	if !ok || !rangeFormattingProvider {
+		t.Fatalf("expected range formatting support, got %+v", result.Capabilities.DocumentRangeFormattingProvider)
+	}
 	semanticProvider, ok := result.Capabilities.SemanticTokensProvider.(protocol.SemanticTokensOptions)
 	if !ok {
 		t.Fatalf("expected semantic token options, got %+v", result.Capabilities.SemanticTokensProvider)
@@ -598,6 +602,39 @@ stakeholders Worker
 	}
 	if !strings.Contains(edits[0].NewText, "value privacy_pref = 1.58, 0.91") {
 		t.Fatalf("unexpected formatted text: %q", edits[0].NewText)
+	}
+}
+
+func TestRangeFormattingReturnsLineBoundedEdit(t *testing.T) {
+	server := NewServer()
+	documentText := `stakeholder Worker
+value privacy_pref = 1.5800, 0.9100
+value safety_pref = 0.4200, 0.8800
+requirement R1
+system shall notify Worker
+stakeholders Worker
+`
+
+	server.documents.Set("file:///spec.dsl", 1, documentText)
+
+	edits, err := server.rangeFormat(&glsp.Context{}, &protocol.DocumentRangeFormattingParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///spec.dsl"},
+		Range: protocol.Range{
+			Start: protocol.Position{Line: 1, Character: 0},
+			End:   protocol.Position{Line: 3, Character: 0},
+		},
+	})
+	if err != nil {
+		t.Fatalf("rangeFormat() error = %v", err)
+	}
+	if len(edits) != 1 {
+		t.Fatalf("expected one range formatting edit, got %d", len(edits))
+	}
+	if edits[0].Range.Start.Line != 1 || edits[0].Range.End.Line != 3 {
+		t.Fatalf("expected edit to stay within selected lines, got %+v", edits[0].Range)
+	}
+	if edits[0].NewText != "value privacy_pref = 1.58, 0.91\nvalue safety_pref = 0.42, 0.88\n" {
+		t.Fatalf("unexpected range formatted text: %q", edits[0].NewText)
 	}
 }
 

@@ -84,6 +84,7 @@ func (s *Server) newHandler() protocol.Handler {
 		TextDocumentFoldingRange:       s.foldingRange,
 		TextDocumentSelectionRange:     s.selectionRange,
 		TextDocumentFormatting:         s.format,
+		TextDocumentRangeFormatting:    s.rangeFormat,
 		TextDocumentSemanticTokensFull: s.semanticTokens,
 	}
 }
@@ -106,6 +107,7 @@ func (s *Server) initialize(_ *glsp.Context, _ *protocol.InitializeParams) (any,
 	capabilities.FoldingRangeProvider = true
 	capabilities.SelectionRangeProvider = true
 	capabilities.DocumentFormattingProvider = true
+	capabilities.DocumentRangeFormattingProvider = true
 	capabilities.SemanticTokensProvider = protocol.SemanticTokensOptions{
 		Legend: protocol.SemanticTokensLegend{
 			TokenTypes:     semantictokens.LegendTypes(),

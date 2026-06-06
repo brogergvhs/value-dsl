@@ -58,6 +58,7 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 | `textDocument/foldingRange`        | Folding ranges            | Folds declaration groups and blocks        |
 | `textDocument/selectionRange`      | Selection ranges          | Expands token selections to fold blocks    |
 | `textDocument/formatting`          | Format document           | Uses the DSL formatter                     |
+| `textDocument/rangeFormatting`     | Format selection          | Formats selected source lines              |
 | `textDocument/semanticTokens/full` | Semantic tokens           | Full semantic token response               |
 | `textDocument/publishDiagnostics`  | Diagnostics               | Server-pushed diagnostics notification     |
 
@@ -76,7 +77,6 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 | `textDocument/codeAction`                | Code actions                | Not implemented                               |
 | `textDocument/codeLens`                  | Code lens                   | Not implemented                               |
 | `textDocument/documentLink`              | Document links              | Not implemented                               |
-| `textDocument/rangeFormatting`           | Format selection            | Not implemented                               |
 | `textDocument/onTypeFormatting`          | Format while typing         | Not implemented                               |
 | `textDocument/linkedEditingRange`        | Linked editing              | Not implemented                               |
 | `textDocument/inlayHint`                 | Inlay hints                 | Not implemented                               |
@@ -180,6 +180,9 @@ ranges.
 
 `textDocument/formatting` — formats the whole document using the same formatter
 as the CLI.
+
+`textDocument/rangeFormatting` — formats the selected source lines as a DSL
+fragment and returns an edit limited to those lines.
 
 ### Diagnostics
 
