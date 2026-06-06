@@ -64,6 +64,9 @@ func TestInitializeAdvertisesFullTextSync(t *testing.T) {
 	if !ok || !documentSymbolProvider {
 		t.Fatalf("expected document symbol support, got %+v", result.Capabilities.DocumentSymbolProvider)
 	}
+	if result.Capabilities.DocumentLinkProvider == nil {
+		t.Fatalf("expected document link support")
+	}
 	documentHighlightProvider, ok := result.Capabilities.DocumentHighlightProvider.(bool)
 	if !ok || !documentHighlightProvider {
 		t.Fatalf("expected document highlight support, got %+v", result.Capabilities.DocumentHighlightProvider)
@@ -703,6 +706,38 @@ linked_to HazardAnalysis
 	}
 	if result[2].Name != "R1" || len(result[2].Children) == 0 {
 		t.Fatalf("expected requirement outline with children, got %+v", result[2])
+	}
+}
+
+func TestDocumentLinkReturnsTraceabilityURLs(t *testing.T) {
+	server := NewServer()
+	documentText := `stakeholder Worker
+
+requirement R1
+system shall notify Worker
+stakeholders Worker
+linked_to "google.com/search?q=lsp"
+linked_to SAFETY-001
+linked_to "https://example.com/spec"
+`
+
+	server.documents.Set("file:///spec.dsl", 1, documentText)
+	server.analyzeDocument(server.documents.Set("file:///spec.dsl", 1, documentText))
+
+	links, err := server.documentLink(&glsp.Context{}, &protocol.DocumentLinkParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///spec.dsl"},
+	})
+	if err != nil {
+		t.Fatalf("documentLink() error = %v", err)
+	}
+	if len(links) != 2 {
+		t.Fatalf("expected two document links, got %+v", links)
+	}
+	if links[0].Target == nil || string(*links[0].Target) != "https://google.com/search?q=lsp" || links[0].Range.Start.Line != 5 || links[0].Range.Start.Character == 0 {
+		t.Fatalf("unexpected first document link: %+v", links[0])
+	}
+	if links[1].Target == nil || string(*links[1].Target) != "https://example.com/spec" || links[1].Range.Start.Line != 7 || links[1].Range.Start.Character == 0 {
+		t.Fatalf("unexpected second document link: %+v", links[1])
 	}
 }
 

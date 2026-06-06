@@ -80,6 +80,7 @@ func (s *Server) newHandler() protocol.Handler {
 		TextDocumentReferences:         s.references,
 		TextDocumentRename:             s.rename,
 		TextDocumentDocumentSymbol:     s.documentSymbol,
+		TextDocumentDocumentLink:       s.documentLink,
 		TextDocumentDocumentHighlight:  s.documentHighlight,
 		TextDocumentFoldingRange:       s.foldingRange,
 		TextDocumentSelectionRange:     s.selectionRange,

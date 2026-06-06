@@ -215,11 +215,16 @@ func appendScalar(parts []string, value string, quote bool) []string {
 	if value = strings.TrimSpace(value); value == "" {
 		return parts
 	}
-	if quote && strings.ContainsAny(value, " \t") {
-		value = "'" + value + "'"
+	if quote && needsQuotes(value) {
+		value = "'" + strings.ReplaceAll(value, "'", `\'`) + "'"
 	}
 
 	return append(parts, value)
+}
+
+func needsQuotes(value string) bool {
+	tokens := grammar.TokenizeRawLine(1, value).Tokens
+	return len(tokens) != 1 || tokens[0].Text != value
 }
 
 func patternHasData(pattern []grammar.Matcher, node ast.GenericNode, depth int) bool {

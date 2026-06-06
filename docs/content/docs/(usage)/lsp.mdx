@@ -53,6 +53,7 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 | `textDocument/definition`          | Go to definition          | Workspace-aware declaration lookup         |
 | `textDocument/references`          | Find references           | Workspace-aware references                 |
 | `textDocument/rename`              | Rename                    | Produces workspace edits after validation  |
+| `textDocument/documentLink`        | Document links            | Links URL-like `linked_to` targets         |
 | `textDocument/documentHighlight`   | Document highlight        | Highlights declaration and references      |
 | `textDocument/documentSymbol`      | Document symbols          | Outline data for declarations and children |
 | `textDocument/foldingRange`        | Folding ranges            | Folds declaration groups and blocks        |
@@ -76,7 +77,6 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 | `textDocument/implementation`            | Go to implementation        | Not applicable to current DSL model           |
 | `textDocument/codeAction`                | Code actions                | Not implemented                               |
 | `textDocument/codeLens`                  | Code lens                   | Not implemented                               |
-| `textDocument/documentLink`              | Document links              | Not implemented                               |
 | `textDocument/onTypeFormatting`          | Format while typing         | Not implemented                               |
 | `textDocument/linkedEditingRange`        | Linked editing              | Not implemented                               |
 | `textDocument/inlayHint`                 | Inlay hints                 | Not implemented                               |
@@ -158,6 +158,12 @@ Validation errors are reported to the editor as a user-visible message.
 | Value declaration                            | Constant |
 | Requirement declaration                      | Object   |
 | Requirement child (clause, action, metadata) | Property |
+
+### Document Links
+
+`textDocument/documentLink` — makes URL-like `linked_to` targets clickable.
+Bare host-like targets such as `google.com/search?q=lsp` are linked as HTTPS
+URLs.
 
 ### Workspace Symbols
 

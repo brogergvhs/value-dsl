@@ -89,6 +89,7 @@ system shall notify Worker using "camera feed"
 stakeholders Worker
 retention "30 days"
 linked_to 'Safety Case'
+linked_to "google.com/search?q=lsp"
 `
 
 	formatted, err := Format(input)
@@ -103,6 +104,7 @@ system shall notify Worker using 'camera feed'
 stakeholders Worker
 retention '30 days'
 linked_to 'Safety Case'
+linked_to 'google.com/search?q=lsp'
 `
 
 	if formatted != expected {
