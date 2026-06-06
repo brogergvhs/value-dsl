@@ -75,6 +75,9 @@ async function startClient(context: vscode.ExtensionContext) {
       { scheme: "file", language: "dsl" },
       { scheme: "untitled", language: "dsl" },
     ],
+    synchronize: {
+      fileEvents: vscode.workspace.createFileSystemWatcher("**/*.dsl"),
+    },
     outputChannel,
   };
 
