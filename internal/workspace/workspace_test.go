@@ -42,7 +42,7 @@ func TestLoadTextLoadsWorkspaceAndSkipsLoneFiles(t *testing.T) {
 	}
 }
 
-func TestLoadDocumentForOpenFileUsesContainingWorkspace(t *testing.T) {
+func TestLoadDocumentForOpenFilesUsesContainingWorkspace(t *testing.T) {
 	root := t.TempDir()
 	write := func(name, text string) {
 		t.Helper()
@@ -60,9 +60,12 @@ func TestLoadDocumentForOpenFileUsesContainingWorkspace(t *testing.T) {
 	write("features/equipment.dsl", "requirement Old\nsystem shall notify Missing\nstakeholders Missing\n")
 	write("_lone/ignored.dsl", "stakeholder Ignored\n")
 
-	document, err := LoadDocumentForOpenFile(filepath.Join(root, "features", "equipment.dsl"), "requirement R2\nsystem shall notify Worker\nstakeholders Worker\n")
+	equipmentPath := filepath.Join(root, "features", "equipment.dsl")
+	document, err := LoadDocumentForOpenFiles(equipmentPath, map[string]string{
+		equipmentPath: "requirement R2\nsystem shall notify Worker\nstakeholders Worker\n",
+	})
 	if err != nil {
-		t.Fatalf("LoadDocumentForOpenFile() error = %v", err)
+		t.Fatalf("LoadDocumentForOpenFiles() error = %v", err)
 	}
 	if !strings.HasPrefix(document.Text, "requirement R2\n") {
 		t.Fatalf("expected open file text first, got %q", document.Text)
@@ -110,9 +113,12 @@ func TestLoadDocumentUsesOutermostMainDSLAsWorkspaceRoot(t *testing.T) {
 		t.Fatalf("expected outer main.dsl first, got %+v", document.Files)
 	}
 
-	open, err := LoadDocumentForOpenFile(filepath.Join(root, "sub", "feature.dsl"), "requirement R2\nsystem shall notify Outer\nstakeholders Outer\n")
+	featurePath := filepath.Join(root, "sub", "feature.dsl")
+	open, err := LoadDocumentForOpenFiles(featurePath, map[string]string{
+		featurePath: "requirement R2\nsystem shall notify Outer\nstakeholders Outer\n",
+	})
 	if err != nil {
-		t.Fatalf("LoadDocumentForOpenFile() error = %v", err)
+		t.Fatalf("LoadDocumentForOpenFiles() error = %v", err)
 	}
 	if !strings.Contains(open.Text, "stakeholder Outer") || !strings.Contains(open.Text, "stakeholder Inner") {
 		t.Fatalf("expected open file to use outer workspace root, got %q", open.Text)

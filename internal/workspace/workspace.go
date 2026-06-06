@@ -40,34 +40,35 @@ func LoadDocument(entry string) (Document, error) {
 	return loadDocument(entry, readFile)
 }
 
-// LoadDocumentForOpenFile returns the workspace text and source mapping visible
-// to an open editor buffer.
-func LoadDocumentForOpenFile(path, openText string) (Document, error) {
-	return LoadDocumentForOpenFiles(path, openText, nil)
-}
-
 // LoadDocumentForOpenFiles returns the workspace text and source mapping visible
-// to an open editor buffer, substituting any other open buffers for their
-// on-disk contents.
-func LoadDocumentForOpenFiles(path, openText string, openFiles map[string]string) (Document, error) {
+// from entry, substituting open buffers for their on-disk contents.
+func LoadDocumentForOpenFiles(path string, openFiles map[string]string) (Document, error) {
 	if strings.TrimSpace(path) == "-" {
-		return Document{Text: openText}, nil
+		return Document{Text: openFiles[path]}, nil
 	}
 	path = filepath.Clean(path)
+	openByPath := make(map[string]string, len(openFiles))
+	for candidate, text := range openFiles {
+		openByPath[filepath.Clean(candidate)] = text
+	}
+	loadSingle := func() (Document, error) {
+		if text, ok := openByPath[path]; ok {
+			return Document{Text: text}, nil
+		}
+		text, err := readFile(path)
+		if err != nil {
+			return Document{}, err
+		}
+		return Document{Text: text}, nil
+	}
 	if standalone(path) || filepath.Ext(path) != ".dsl" {
-		return Document{Text: openText}, nil
+		return loadSingle()
 	}
 
 	root, ok := containingRoot(path)
 	if !ok {
-		return Document{Text: openText}, nil
+		return loadSingle()
 	}
-
-	openByPath := make(map[string]string, len(openFiles)+1)
-	for candidate, text := range openFiles {
-		openByPath[filepath.Clean(candidate)] = text
-	}
-	openByPath[path] = openText
 
 	return loadWorkspaceDocument(root, path, func(candidate string) (string, error) {
 		if text, ok := openByPath[filepath.Clean(candidate)]; ok {

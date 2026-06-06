@@ -11,7 +11,7 @@ import (
 func (s *Server) semanticTokens(_ *glsp.Context, params *protocol.SemanticTokensParams) (*protocol.SemanticTokens, error) {
 	document, result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
 	if !ok {
-		return &protocol.SemanticTokens{}, nil
+		return semantictokens.Empty(), nil
 	}
 	return semantictokens.Resolve(document.Text, result), nil
 }

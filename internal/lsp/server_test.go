@@ -101,6 +101,35 @@ func TestInitializeAdvertisesFullTextSync(t *testing.T) {
 	}
 }
 
+func TestInitializedRegistersWatchedFilesWhenSupported(t *testing.T) {
+	server := NewServer()
+	server.watchFiles = true
+
+	type registrationCall struct {
+		method string
+		params protocol.RegistrationParams
+	}
+	calls := make(chan registrationCall, 1)
+	if err := server.initialized(&glsp.Context{Call: func(m string, p any, _ any) {
+		calls <- registrationCall{method: m, params: p.(protocol.RegistrationParams)}
+	}}, &protocol.InitializedParams{}); err != nil {
+		t.Fatalf("initialized() error = %v", err)
+	}
+	var call registrationCall
+	select {
+	case call = <-calls:
+	case <-time.After(time.Second):
+		t.Fatal("expected watched-file registration")
+	}
+	if call.method != string(protocol.ServerClientRegisterCapability) || len(call.params.Registrations) != 1 {
+		t.Fatalf("expected watched-file registration, got method=%q params=%+v", call.method, call.params)
+	}
+	options := call.params.Registrations[0].RegisterOptions.(protocol.DidChangeWatchedFilesRegistrationOptions)
+	if call.params.Registrations[0].Method != string(protocol.MethodWorkspaceDidChangeWatchedFiles) || len(options.Watchers) != 1 || options.Watchers[0].GlobPattern != "**/*.dsl" {
+		t.Fatalf("unexpected watched-file registration: %+v", call.params.Registrations[0])
+	}
+}
+
 func TestDidOpenPublishesValidationDiagnostics(t *testing.T) {
 	server := NewServer()
 	var published protocol.PublishDiagnosticsParams
@@ -473,6 +502,89 @@ stakeholders Worker
 	}
 }
 
+func TestWatchedFileChangePublishesClosedWorkspaceDiagnostics(t *testing.T) {
+	root := t.TempDir()
+	mainText := `stakeholder Worker
+value privacy_pref = 1.58, 0.91
+
+requirement R1
+system shall notify Worker
+stakeholders Worker
+`
+	writeWorkspaceFile(t, root, "main.dsl", mainText)
+	writeWorkspaceFile(t, root, "assignments.dsl", "assignment R1\nWorker -> privacy_pref\n")
+
+	server := NewServer()
+	server.debounce = 10 * time.Millisecond
+	defer server.cancelAllScheduled()
+
+	assignmentsURI := protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "assignments.dsl")}).String())
+	var mu sync.Mutex
+	published := map[protocol.DocumentUri]protocol.PublishDiagnosticsParams{}
+	context := &glsp.Context{Notify: func(_ string, params any) {
+		diagnostics := params.(protocol.PublishDiagnosticsParams)
+		mu.Lock()
+		published[diagnostics.URI] = diagnostics
+		mu.Unlock()
+	}}
+
+	writeWorkspaceFile(t, root, "main.dsl", strings.Replace(mainText, "requirement R1", "requirement R7", 1))
+	if err := server.didChangeWatchedFiles(context, &protocol.DidChangeWatchedFilesParams{Changes: []protocol.FileEvent{{
+		URI:  protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "main.dsl")}).String()),
+		Type: protocol.FileChangeTypeChanged,
+	}}}); err != nil {
+		t.Fatalf("didChangeWatchedFiles() error = %v", err)
+	}
+	time.Sleep(40 * time.Millisecond)
+
+	mu.Lock()
+	diagnostics := published[assignmentsURI].Diagnostics
+	mu.Unlock()
+	if len(diagnostics) != 1 || diagnostics[0].Code == nil ||
+		diagnostics[0].Code.Value != string(validation.CodeAssignmentRequirementUnknown) {
+		t.Fatalf("expected watched change to publish closed assignments diagnostic, got %+v", diagnostics)
+	}
+}
+
+func TestWatchedFileDeletePublishesWorkspaceDiagnostics(t *testing.T) {
+	root := t.TempDir()
+	stakeholdersPath := filepath.Join(root, "stakeholders.dsl")
+	writeWorkspaceFile(t, root, "main.dsl", "requirement R1\nsystem shall notify Worker\nstakeholders Worker\n")
+	writeWorkspaceFile(t, root, "stakeholders.dsl", "stakeholder Worker\n")
+
+	server := NewServer()
+	server.debounce = 10 * time.Millisecond
+	defer server.cancelAllScheduled()
+
+	mainURI := protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "main.dsl")}).String())
+	var mu sync.Mutex
+	published := map[protocol.DocumentUri]protocol.PublishDiagnosticsParams{}
+	context := &glsp.Context{Notify: func(_ string, params any) {
+		diagnostics := params.(protocol.PublishDiagnosticsParams)
+		mu.Lock()
+		published[diagnostics.URI] = diagnostics
+		mu.Unlock()
+	}}
+
+	if err := os.Remove(stakeholdersPath); err != nil {
+		t.Fatalf("Remove() error = %v", err)
+	}
+	if err := server.didChangeWatchedFiles(context, &protocol.DidChangeWatchedFilesParams{Changes: []protocol.FileEvent{{
+		URI:  protocol.DocumentUri((&url.URL{Scheme: "file", Path: stakeholdersPath}).String()),
+		Type: protocol.FileChangeTypeDeleted,
+	}}}); err != nil {
+		t.Fatalf("didChangeWatchedFiles() error = %v", err)
+	}
+	time.Sleep(40 * time.Millisecond)
+
+	mu.Lock()
+	diagnostics := published[mainURI].Diagnostics
+	mu.Unlock()
+	if len(diagnostics) == 0 {
+		t.Fatalf("expected deleted stakeholders.dsl to publish main.dsl diagnostics, got %+v", published)
+	}
+}
+
 func TestWorkspaceSymbolReturnsOpenDocumentDeclarations(t *testing.T) {
 	server := NewServer()
 	documentText := `stakeholder Worker
@@ -805,6 +917,31 @@ Worker -> privacy_pref // inline note
 	}
 	if len(result.Data)%5 != 0 {
 		t.Fatalf("semantic token data length must be divisible by 5, got %d", len(result.Data))
+	}
+}
+
+func TestSemanticTokensReturnEmptyDataArray(t *testing.T) {
+	server := NewServer()
+
+	result, err := server.semanticTokens(&glsp.Context{}, &protocol.SemanticTokensParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///missing.dsl"},
+	})
+	if err != nil {
+		t.Fatalf("semanticTokens(missing) error = %v", err)
+	}
+	if result == nil || result.Data == nil || len(result.Data) != 0 {
+		t.Fatalf("expected missing document to return empty semantic token data, got %+v", result)
+	}
+
+	server.documents.Set("file:///empty.dsl", 1, "\n")
+	result, err = server.semanticTokens(&glsp.Context{}, &protocol.SemanticTokensParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///empty.dsl"},
+	})
+	if err != nil {
+		t.Fatalf("semanticTokens(empty) error = %v", err)
+	}
+	if result == nil || result.Data == nil || len(result.Data) != 0 {
+		t.Fatalf("expected empty document to return empty semantic token data, got %+v", result)
 	}
 }
 
