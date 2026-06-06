@@ -141,18 +141,19 @@ stakeholders Worker
 	}
 }
 
+func writeWorkspaceFile(t *testing.T, root, name, text string) {
+	t.Helper()
+	path := filepath.Join(root, name)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+}
+
 func TestDidOpenUsesWorkspaceFilesForMainDSLDiagnostics(t *testing.T) {
 	root := t.TempDir()
-	write := func(name, text string) {
-		t.Helper()
-		path := filepath.Join(root, name)
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("MkdirAll() error = %v", err)
-		}
-		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
-			t.Fatalf("WriteFile() error = %v", err)
-		}
-	}
 
 	mainText := `requirement R1
 system shall notify Worker
@@ -162,11 +163,11 @@ requirement R2
 system shall log location of Worker using Database
 stakeholders Worker, SafetyOfficer
 `
-	write("main.dsl", mainText)
-	write("stakeholders.dsl", "stakeholder Worker\nstakeholder Supervisor\nstakeholder SafetyOfficer\n")
-	write("values/preferences.dsl", "value privacy_pref = 1.58, 0.91\n")
-	write("case_lone.dsl", "stakeholder IgnoredLone\n")
-	write("_lone/ignored.dsl", "stakeholder IgnoredDir\n")
+	writeWorkspaceFile(t, root, "main.dsl", mainText)
+	writeWorkspaceFile(t, root, "stakeholders.dsl", "stakeholder Worker\nstakeholder Supervisor\nstakeholder SafetyOfficer\n")
+	writeWorkspaceFile(t, root, "values/preferences.dsl", "value privacy_pref = 1.58, 0.91\n")
+	writeWorkspaceFile(t, root, "case_lone.dsl", "stakeholder IgnoredLone\n")
+	writeWorkspaceFile(t, root, "_lone/ignored.dsl", "stakeholder IgnoredDir\n")
 
 	server := NewServer()
 	var published protocol.PublishDiagnosticsParams
@@ -194,16 +195,6 @@ stakeholders Worker, SafetyOfficer
 
 func TestDidOpenUsesWorkspaceFilesForSiblingDiagnostics(t *testing.T) {
 	root := t.TempDir()
-	write := func(name, text string) {
-		t.Helper()
-		path := filepath.Join(root, name)
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("MkdirAll() error = %v", err)
-		}
-		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
-			t.Fatalf("WriteFile() error = %v", err)
-		}
-	}
 
 	assignmentsText := `assignment R1
 Worker -> safety_pref
@@ -213,7 +204,7 @@ assignment R2
 Worker -> privacy_pref
 SafetyOfficer -> safety_pref
 `
-	write("main.dsl", `requirement R1
+	writeWorkspaceFile(t, root, "main.dsl", `requirement R1
 system shall notify Worker
 stakeholders Worker, Supervisor
 
@@ -221,9 +212,9 @@ requirement R2
 system shall log location of Worker using Database
 stakeholders Worker, SafetyOfficer
 `)
-	write("stakeholders.dsl", "stakeholder Worker\nstakeholder Supervisor\nstakeholder SafetyOfficer\n")
-	write("assignments.dsl", assignmentsText)
-	write("values/preferences.dsl", "value privacy_pref = 1.58, 0.91\nvalue safety_pref = 0.42, 0.88\n")
+	writeWorkspaceFile(t, root, "stakeholders.dsl", "stakeholder Worker\nstakeholder Supervisor\nstakeholder SafetyOfficer\n")
+	writeWorkspaceFile(t, root, "assignments.dsl", assignmentsText)
+	writeWorkspaceFile(t, root, "values/preferences.dsl", "value privacy_pref = 1.58, 0.91\nvalue safety_pref = 0.42, 0.88\n")
 
 	server := NewServer()
 	var published protocol.PublishDiagnosticsParams
@@ -251,24 +242,14 @@ stakeholders Worker, SafetyOfficer
 
 func TestWorkspaceSiblingNavigationUsesWorkspaceSymbolsAndFileLocations(t *testing.T) {
 	root := t.TempDir()
-	write := func(name, text string) {
-		t.Helper()
-		path := filepath.Join(root, name)
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("MkdirAll() error = %v", err)
-		}
-		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
-			t.Fatalf("WriteFile() error = %v", err)
-		}
-	}
 
 	equipmentText := `requirement R3
 system shall monitor protective_equipment_usage of Worker using Sensor
 stakeholders Worker, SafetyOfficer
 `
-	write("main.dsl", "requirement R1\nsystem shall notify Worker\nstakeholders Worker\n")
-	write("stakeholders.dsl", "stakeholder Worker\nstakeholder SafetyOfficer\n")
-	write("features/equipment.dsl", equipmentText)
+	writeWorkspaceFile(t, root, "main.dsl", "requirement R1\nsystem shall notify Worker\nstakeholders Worker\n")
+	writeWorkspaceFile(t, root, "stakeholders.dsl", "stakeholder Worker\nstakeholder SafetyOfficer\n")
+	writeWorkspaceFile(t, root, "features/equipment.dsl", equipmentText)
 
 	server := NewServer()
 	equipmentURI := protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "features", "equipment.dsl")}).String())
@@ -342,16 +323,6 @@ stakeholders Worker, SafetyOfficer
 
 func TestWorkspaceSiblingAnalysisInvalidatesWhenOpenFileChanges(t *testing.T) {
 	root := t.TempDir()
-	write := func(name, text string) {
-		t.Helper()
-		path := filepath.Join(root, name)
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("MkdirAll() error = %v", err)
-		}
-		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
-			t.Fatalf("WriteFile() error = %v", err)
-		}
-	}
 
 	mainText := `stakeholder Worker
 value privacy_pref = 1.58, 0.91
@@ -363,8 +334,8 @@ stakeholders Worker
 	assignmentsText := `assignment R1
 Worker -> privacy_pref
 `
-	write("main.dsl", mainText)
-	write("assignments.dsl", assignmentsText)
+	writeWorkspaceFile(t, root, "main.dsl", mainText)
+	writeWorkspaceFile(t, root, "assignments.dsl", assignmentsText)
 
 	server := NewServer()
 	server.debounce = time.Hour
@@ -442,16 +413,6 @@ Worker -> privacy_pref
 
 func TestWorkspaceDiagnosticsPublishClosedSiblingErrors(t *testing.T) {
 	root := t.TempDir()
-	write := func(name, text string) {
-		t.Helper()
-		path := filepath.Join(root, name)
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("MkdirAll() error = %v", err)
-		}
-		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
-			t.Fatalf("WriteFile() error = %v", err)
-		}
-	}
 
 	mainText := `stakeholder Worker
 value privacy_pref = 1.58, 0.91
@@ -460,8 +421,8 @@ requirement R1
 system shall notify Worker
 stakeholders Worker
 `
-	write("main.dsl", mainText)
-	write("assignments.dsl", "assignment R1\nWorker -> privacy_pref\n")
+	writeWorkspaceFile(t, root, "main.dsl", mainText)
+	writeWorkspaceFile(t, root, "assignments.dsl", "assignment R1\nWorker -> privacy_pref\n")
 
 	server := NewServer()
 	server.debounce = 10 * time.Millisecond

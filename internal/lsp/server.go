@@ -276,11 +276,12 @@ func (s *Server) publishWorkspaceDiagnostics(notify glsp.NotifyFunc, document Do
 	for _, file := range workspaceDocument.Files {
 		uri := fileURI(file.Path)
 		version := int32(-1)
+		fileResult := withSourceFileSource(result, file)
 		if openDocument, ok := open[filepath.Clean(file.Path)]; ok {
 			version = openDocument.Version
-			s.analysisCache.PutDocument(openDocument, withSourceFileSource(result, file))
+			s.analysisCache.PutDocument(openDocument, fileResult)
 		}
-		publishDiagnostics(notify, uri, version, withSourceFileSource(result, file))
+		publishDiagnostics(notify, uri, version, fileResult)
 	}
 	return true
 }
@@ -298,7 +299,7 @@ func withSourceFileSource(result coreanalysis.Result, file docindex.SourceFile) 
 		if line < file.StartLine || line > file.EndLine {
 			result.BuildErr = nil
 		} else {
-			result.BuildErr = diagnosticError(fmt.Sprintf("line %d: %s", line-file.StartLine+1, result.BuildErr.Error()))
+			result.BuildErr = fmt.Errorf("line %d: %s", line-file.StartLine+1, result.BuildErr.Error())
 		}
 	}
 	return result
@@ -320,10 +321,6 @@ func diagnosticsInSourceFile(diagnostics []validation.Diagnostic, file docindex.
 	return out
 }
 
-type diagnosticError string
-
-func (e diagnosticError) Error() string { return string(e) }
-
 func fileURIPath(uri string) (string, bool) {
 	parsed, err := url.Parse(uri)
 	if err != nil || parsed.Scheme != "file" {
@@ -340,14 +337,10 @@ func fileURIPath(uri string) (string, bool) {
 }
 
 func (s *Server) openFileTextsByPath() map[string]string {
-	documents := s.documents.All()
+	documents := s.openDocumentsByPath()
 	texts := make(map[string]string, len(documents))
-	for _, document := range documents {
-		path, ok := fileURIPath(document.URI)
-		if !ok {
-			continue
-		}
-		texts[filepath.Clean(path)] = document.Text
+	for path, document := range documents {
+		texts[path] = document.Text
 	}
 	return texts
 }
@@ -367,7 +360,7 @@ func (s *Server) openDocumentsByPath() map[string]Document {
 func (s *Server) workspaceOpenDocuments(document Document) []Document {
 	workspaceDocument, ok := s.loadWorkspace(document)
 	if !ok {
-		return []Document{document}
+		return nil
 	}
 	open := s.openDocumentsByPath()
 	affected := make([]Document, 0, len(open))
@@ -375,9 +368,6 @@ func (s *Server) workspaceOpenDocuments(document Document) []Document {
 		if document, ok := open[filepath.Clean(file.Path)]; ok {
 			affected = append(affected, document)
 		}
-	}
-	if len(affected) == 0 {
-		return []Document{document}
 	}
 	return affected
 }
