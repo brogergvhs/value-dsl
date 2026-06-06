@@ -43,6 +43,13 @@ func LoadDocument(entry string) (Document, error) {
 // LoadDocumentForOpenFile returns the workspace text and source mapping visible
 // to an open editor buffer.
 func LoadDocumentForOpenFile(path, openText string) (Document, error) {
+	return LoadDocumentForOpenFiles(path, openText, nil)
+}
+
+// LoadDocumentForOpenFiles returns the workspace text and source mapping visible
+// to an open editor buffer, substituting any other open buffers for their
+// on-disk contents.
+func LoadDocumentForOpenFiles(path, openText string, openFiles map[string]string) (Document, error) {
 	if strings.TrimSpace(path) == "-" {
 		return Document{Text: openText}, nil
 	}
@@ -56,9 +63,15 @@ func LoadDocumentForOpenFile(path, openText string) (Document, error) {
 		return Document{Text: openText}, nil
 	}
 
+	openByPath := make(map[string]string, len(openFiles)+1)
+	for candidate, text := range openFiles {
+		openByPath[filepath.Clean(candidate)] = text
+	}
+	openByPath[path] = openText
+
 	return loadWorkspaceDocument(root, path, func(candidate string) (string, error) {
-		if filepath.Clean(candidate) == path {
-			return openText, nil
+		if text, ok := openByPath[filepath.Clean(candidate)]; ok {
+			return text, nil
 		}
 		return readFile(candidate)
 	})

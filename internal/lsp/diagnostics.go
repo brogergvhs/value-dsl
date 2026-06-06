@@ -21,10 +21,14 @@ func publishDiagnostics(notify glsp.NotifyFunc, uri protocol.DocumentUri, versio
 	if notify == nil {
 		return
 	}
-	versionUint := protocol.UInteger(version)
+	var versionPtr *protocol.UInteger
+	if version >= 0 {
+		versionUint := protocol.UInteger(version)
+		versionPtr = &versionUint
+	}
 	notify(string(protocol.ServerTextDocumentPublishDiagnostics), protocol.PublishDiagnosticsParams{
 		URI:         uri,
-		Version:     &versionUint,
+		Version:     versionPtr,
 		Diagnostics: diagnosticsFromResult(result),
 	})
 }

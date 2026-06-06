@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brogergvhs/value-dsl/internal/validation"
+
 	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
@@ -335,6 +337,178 @@ stakeholders Worker, SafetyOfficer
 	}
 	if len(symbols) != 1 || symbols[0].Name != "Worker" || symbols[0].Location.URI != stakeholdersURI {
 		t.Fatalf("expected Worker workspace symbol in stakeholders.dsl, got %+v", symbols)
+	}
+}
+
+func TestWorkspaceSiblingAnalysisInvalidatesWhenOpenFileChanges(t *testing.T) {
+	root := t.TempDir()
+	write := func(name, text string) {
+		t.Helper()
+		path := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("MkdirAll() error = %v", err)
+		}
+		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+			t.Fatalf("WriteFile() error = %v", err)
+		}
+	}
+
+	mainText := `stakeholder Worker
+value privacy_pref = 1.58, 0.91
+
+requirement R1
+system shall notify Worker
+stakeholders Worker
+`
+	assignmentsText := `assignment R1
+Worker -> privacy_pref
+`
+	write("main.dsl", mainText)
+	write("assignments.dsl", assignmentsText)
+
+	server := NewServer()
+	server.debounce = time.Hour
+	defer server.cancelAllScheduled()
+
+	mainURI := protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "main.dsl")}).String())
+	assignmentsURI := protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "assignments.dsl")}).String())
+
+	if err := server.didOpen(&glsp.Context{}, &protocol.DidOpenTextDocumentParams{
+		TextDocument: protocol.TextDocumentItem{
+			URI:     mainURI,
+			Version: 1,
+			Text:    mainText,
+		},
+	}); err != nil {
+		t.Fatalf("didOpen(main) error = %v", err)
+	}
+	if err := server.didOpen(&glsp.Context{}, &protocol.DidOpenTextDocumentParams{
+		TextDocument: protocol.TextDocumentItem{
+			URI:     assignmentsURI,
+			Version: 1,
+			Text:    assignmentsText,
+		},
+	}); err != nil {
+		t.Fatalf("didOpen(assignments) error = %v", err)
+	}
+
+	_, initialResult, ok := server.currentDocumentAnalysis(assignmentsURI)
+	if !ok {
+		t.Fatal("expected open assignments document")
+	}
+	if diagnostics := initialResult.AllDiagnostics(); len(diagnostics) != 0 {
+		t.Fatalf("expected clean initial assignments diagnostics, got %+v", diagnostics)
+	}
+
+	changedMainText := strings.Replace(mainText, "requirement R1", "requirement R7", 1)
+	if err := server.didChange(&glsp.Context{}, &protocol.DidChangeTextDocumentParams{
+		TextDocument: protocol.VersionedTextDocumentIdentifier{
+			TextDocumentIdentifier: protocol.TextDocumentIdentifier{URI: mainURI},
+			Version:                2,
+		},
+		ContentChanges: []any{protocol.TextDocumentContentChangeEventWhole{Text: changedMainText}},
+	}); err != nil {
+		t.Fatalf("didChange(main) error = %v", err)
+	}
+
+	definitionResult, err := server.definition(&glsp.Context{}, &protocol.DefinitionParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: assignmentsURI},
+			Position:     protocol.Position{Line: 0, Character: 11},
+		},
+	})
+	if err != nil {
+		t.Fatalf("definition() error = %v", err)
+	}
+	if definitions := definitionResult.([]protocol.Location); len(definitions) != 0 {
+		t.Fatalf("expected stale R1 definition to disappear after main.dsl edit, got %+v", definitions)
+	}
+
+	_, changedResult, ok := server.currentDocumentAnalysis(assignmentsURI)
+	if !ok {
+		t.Fatal("expected open assignments document after main change")
+	}
+	foundUnknownRequirement := false
+	for _, diagnostic := range changedResult.AllDiagnostics() {
+		if diagnostic.Code == validation.CodeAssignmentRequirementUnknown {
+			foundUnknownRequirement = true
+			break
+		}
+	}
+	if !foundUnknownRequirement {
+		t.Fatalf("expected assignment unknown requirement diagnostic after main.dsl edit, got %+v", changedResult.AllDiagnostics())
+	}
+}
+
+func TestWorkspaceDiagnosticsPublishClosedSiblingErrors(t *testing.T) {
+	root := t.TempDir()
+	write := func(name, text string) {
+		t.Helper()
+		path := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("MkdirAll() error = %v", err)
+		}
+		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+			t.Fatalf("WriteFile() error = %v", err)
+		}
+	}
+
+	mainText := `stakeholder Worker
+value privacy_pref = 1.58, 0.91
+
+requirement R1
+system shall notify Worker
+stakeholders Worker
+`
+	write("main.dsl", mainText)
+	write("assignments.dsl", "assignment R1\nWorker -> privacy_pref\n")
+
+	server := NewServer()
+	server.debounce = 10 * time.Millisecond
+	defer server.cancelAllScheduled()
+
+	mainURI := protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "main.dsl")}).String())
+	assignmentsURI := protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "assignments.dsl")}).String())
+	var mu sync.Mutex
+	published := map[protocol.DocumentUri]protocol.PublishDiagnosticsParams{}
+	context := &glsp.Context{
+		Notify: func(_ string, params any) {
+			diagnostics := params.(protocol.PublishDiagnosticsParams)
+			mu.Lock()
+			published[diagnostics.URI] = diagnostics
+			mu.Unlock()
+		},
+	}
+
+	if err := server.didOpen(context, &protocol.DidOpenTextDocumentParams{
+		TextDocument: protocol.TextDocumentItem{URI: mainURI, Version: 1, Text: mainText},
+	}); err != nil {
+		t.Fatalf("didOpen(main) error = %v", err)
+	}
+	changedMainText := strings.Replace(mainText, "requirement R1", "requirement R7", 1)
+	if err := server.didChange(context, &protocol.DidChangeTextDocumentParams{
+		TextDocument: protocol.VersionedTextDocumentIdentifier{
+			TextDocumentIdentifier: protocol.TextDocumentIdentifier{URI: mainURI},
+			Version:                2,
+		},
+		ContentChanges: []any{protocol.TextDocumentContentChangeEventWhole{Text: changedMainText}},
+	}); err != nil {
+		t.Fatalf("didChange(main) error = %v", err)
+	}
+	time.Sleep(40 * time.Millisecond)
+
+	mu.Lock()
+	assignmentsDiagnostics, ok := published[assignmentsURI]
+	mu.Unlock()
+	if !ok {
+		t.Fatalf("expected diagnostics publish for closed assignments.dsl, got %+v", published)
+	}
+	if assignmentsDiagnostics.Version != nil {
+		t.Fatalf("expected closed-file diagnostics without version, got %+v", assignmentsDiagnostics.Version)
+	}
+	if len(assignmentsDiagnostics.Diagnostics) != 1 || assignmentsDiagnostics.Diagnostics[0].Code == nil ||
+		assignmentsDiagnostics.Diagnostics[0].Code.Value != string(validation.CodeAssignmentRequirementUnknown) {
+		t.Fatalf("expected closed assignments unknown requirement diagnostic, got %+v", assignmentsDiagnostics.Diagnostics)
 	}
 }
 

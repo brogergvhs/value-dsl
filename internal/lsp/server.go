@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -140,10 +141,16 @@ func (s *Server) didOpen(context *glsp.Context, params *protocol.DidOpenTextDocu
 
 	s.cancelScheduled(params.TextDocument.URI)
 	document := s.documents.Set(params.TextDocument.URI, int32(params.TextDocument.Version), params.TextDocument.Text)
+	affected := s.workspaceOpenDocuments(document)
+	for _, affectedDocument := range affected {
+		s.analysisCache.Delete(affectedDocument.URI)
+	}
 	if s.logger != nil {
 		s.logger.Debug("didOpen", "uri", document.URI, "version", document.Version)
 	}
-	publishDiagnostics(context.Notify, params.TextDocument.URI, int32(params.TextDocument.Version), s.analyzeDocument(document))
+	if !s.publishWorkspaceDiagnostics(context.Notify, document) {
+		publishDiagnostics(context.Notify, params.TextDocument.URI, int32(params.TextDocument.Version), s.analyzeDocument(document))
+	}
 	return nil
 }
 
@@ -163,7 +170,13 @@ func (s *Server) didChange(context *glsp.Context, params *protocol.DidChangeText
 	if s.logger != nil {
 		s.logger.Debug("didChange", "uri", document.URI, "version", document.Version)
 	}
-	s.scheduleAnalysis(context.Notify, document)
+	affected := s.workspaceOpenDocuments(document)
+	for _, affectedDocument := range affected {
+		if affectedDocument.URI != document.URI {
+			s.analysisCache.Delete(affectedDocument.URI)
+		}
+	}
+	s.scheduleWorkspaceAnalysis(context.Notify, document)
 	return nil
 }
 
@@ -173,6 +186,11 @@ func (s *Server) didClose(context *glsp.Context, params *protocol.DidCloseTextDo
 	defer s.lifecycleMu.Unlock()
 
 	uri := params.TextDocument.URI
+	document, hadDocument := s.documents.Get(uri)
+	var affected []Document
+	if hadDocument {
+		affected = s.workspaceOpenDocuments(document)
+	}
 	s.cancelScheduled(uri)
 	s.documents.Delete(uri)
 	s.analysisCache.Delete(uri)
@@ -180,6 +198,14 @@ func (s *Server) didClose(context *glsp.Context, params *protocol.DidCloseTextDo
 		s.logger.Debug("didClose", "uri", uri)
 	}
 	publishDiagnostics(context.Notify, uri, 0, coreanalysis.Result{})
+	for _, affectedDocument := range affected {
+		if affectedDocument.URI == uri {
+			continue
+		}
+		s.analysisCache.Delete(affectedDocument.URI)
+		s.scheduleWorkspaceAnalysis(context.Notify, affectedDocument)
+		break
+	}
 	return nil
 }
 
@@ -200,42 +226,81 @@ func (s *Server) analyzeDocument(document Document) coreanalysis.Result {
 		}
 		return cached
 	}
-	if path, ok := fileURIPath(document.URI); ok {
-		if workspaceDocument, err := workspace.LoadDocumentForOpenFile(path, document.Text); err == nil {
-			return s.analyzeDocumentWithWorkspace(document, workspaceDocument)
+	if workspaceDocument, result, ok := s.analyzeWorkspace(document); ok {
+		if file, ok := sourceFileForURI(protocol.DocumentUri(document.URI), workspaceDocument.Files); ok {
+			result = withSourceFileSource(result, file)
 		}
+		s.analysisCache.PutDocument(document, result)
+		if s.logger != nil {
+			s.logger.Debug("analysis complete", "uri", document.URI, "version", document.Version, "diagnostics", len(result.AllDiagnostics()))
+		}
+		return result
 	}
 	result, _ := coreanalysis.Run(document.Text, coreanalysis.Options{})
 	s.analysisCache.PutDocument(document, result)
-	if s.logger != nil {
-		s.logger.Debug("analysis complete", "uri", document.URI, "version", document.Version, "diagnostics", len(result.AllDiagnostics()))
-	}
 	return result
 }
 
-func (s *Server) analyzeDocumentWithWorkspace(document Document, workspaceDocument workspace.Document) coreanalysis.Result {
+func (s *Server) analyzeWorkspace(document Document) (workspace.Document, coreanalysis.Result, bool) {
+	workspaceDocument, ok := s.loadWorkspace(document)
+	if !ok {
+		return workspace.Document{}, coreanalysis.Result{}, false
+	}
 	result, _ := coreanalysis.Run(workspaceDocument.Text, coreanalysis.Options{})
-	result = withOpenFileSource(result, workspaceDocument)
-	s.analysisCache.PutDocument(document, result)
-	if s.logger != nil {
-		s.logger.Debug("analysis complete", "uri", document.URI, "version", document.Version, "diagnostics", len(result.AllDiagnostics()))
+	if result.Index != nil {
+		index := *result.Index
+		index.SourceFiles = workspaceDocument.Files
+		result.Index = &index
 	}
-	return result
+	return workspaceDocument, result, true
 }
 
-func withOpenFileSource(result coreanalysis.Result, workspaceDocument workspace.Document) coreanalysis.Result {
+func (s *Server) loadWorkspace(document Document) (workspace.Document, bool) {
+	path, ok := fileURIPath(document.URI)
+	if !ok {
+		return workspace.Document{}, false
+	}
+	workspaceDocument, err := workspace.LoadDocumentForOpenFiles(path, document.Text, s.openFileTextsByPath())
+	if err != nil || len(workspaceDocument.Files) == 0 {
+		return workspace.Document{}, false
+	}
+	return workspaceDocument, true
+}
+
+func (s *Server) publishWorkspaceDiagnostics(notify glsp.NotifyFunc, document Document) bool {
+	workspaceDocument, result, ok := s.analyzeWorkspace(document)
+	if !ok || result.Index == nil {
+		return false
+	}
+	open := s.openDocumentsByPath()
+	for _, file := range workspaceDocument.Files {
+		uri := fileURI(file.Path)
+		version := int32(-1)
+		if openDocument, ok := open[filepath.Clean(file.Path)]; ok {
+			version = openDocument.Version
+			s.analysisCache.PutDocument(openDocument, withSourceFileSource(result, file))
+		}
+		publishDiagnostics(notify, uri, version, withSourceFileSource(result, file))
+	}
+	return true
+}
+
+func withSourceFileSource(result coreanalysis.Result, file docindex.SourceFile) coreanalysis.Result {
 	if result.Index == nil {
 		return result
 	}
-
 	index := *result.Index
-	index.SourceFiles = workspaceDocument.Files
-	if len(workspaceDocument.Files) > 0 {
-		index.ParseDiagnostics = diagnosticsInSourceFile(index.ParseDiagnostics, workspaceDocument.Files[0])
-		index.Diagnostics = diagnosticsInSourceFile(index.Diagnostics, workspaceDocument.Files[0])
-	}
+	index.ParseDiagnostics = diagnosticsInSourceFile(index.ParseDiagnostics, file)
+	index.Diagnostics = diagnosticsInSourceFile(index.Diagnostics, file)
 	result.Index = &index
-
+	if result.BuildErr != nil {
+		line, _ := extractPosition(result.BuildErr.Error())
+		if line < file.StartLine || line > file.EndLine {
+			result.BuildErr = nil
+		} else {
+			result.BuildErr = diagnosticError(fmt.Sprintf("line %d: %s", line-file.StartLine+1, result.BuildErr.Error()))
+		}
+	}
 	return result
 }
 
@@ -244,7 +309,7 @@ func diagnosticsInSourceFile(diagnostics []validation.Diagnostic, file docindex.
 		return diagnostics
 	}
 
-	out := diagnostics[:0]
+	out := make([]validation.Diagnostic, 0, len(diagnostics))
 	for _, diagnostic := range diagnostics {
 		if diagnostic.Line >= file.StartLine && diagnostic.Line <= file.EndLine {
 			diagnostic.Line -= file.StartLine - 1
@@ -254,6 +319,10 @@ func diagnosticsInSourceFile(diagnostics []validation.Diagnostic, file docindex.
 
 	return out
 }
+
+type diagnosticError string
+
+func (e diagnosticError) Error() string { return string(e) }
 
 func fileURIPath(uri string) (string, bool) {
 	parsed, err := url.Parse(uri)
@@ -268,6 +337,49 @@ func fileURIPath(uri string) (string, bool) {
 	}
 
 	return parsed.Path, true
+}
+
+func (s *Server) openFileTextsByPath() map[string]string {
+	documents := s.documents.All()
+	texts := make(map[string]string, len(documents))
+	for _, document := range documents {
+		path, ok := fileURIPath(document.URI)
+		if !ok {
+			continue
+		}
+		texts[filepath.Clean(path)] = document.Text
+	}
+	return texts
+}
+
+func (s *Server) openDocumentsByPath() map[string]Document {
+	documents := s.documents.All()
+	byPath := make(map[string]Document, len(documents))
+	for _, document := range documents {
+		path, ok := fileURIPath(document.URI)
+		if ok {
+			byPath[filepath.Clean(path)] = document
+		}
+	}
+	return byPath
+}
+
+func (s *Server) workspaceOpenDocuments(document Document) []Document {
+	workspaceDocument, ok := s.loadWorkspace(document)
+	if !ok {
+		return []Document{document}
+	}
+	open := s.openDocumentsByPath()
+	affected := make([]Document, 0, len(open))
+	for _, file := range workspaceDocument.Files {
+		if document, ok := open[filepath.Clean(file.Path)]; ok {
+			affected = append(affected, document)
+		}
+	}
+	if len(affected) == 0 {
+		return []Document{document}
+	}
+	return affected
 }
 
 func (s *Server) navigationAnalysis(uri string, current coreanalysis.Result) coreanalysis.Result {
@@ -291,33 +403,42 @@ func (s *Server) navigationAnalysis(uri string, current coreanalysis.Result) cor
 
 // Scheduling
 
-func (s *Server) scheduleAnalysis(notify glsp.NotifyFunc, document Document) {
+func (s *Server) scheduleWorkspaceAnalysis(notify glsp.NotifyFunc, document Document) {
+	key := s.workspaceScheduleKey(document)
 	s.scheduleMu.Lock()
 	defer s.scheduleMu.Unlock()
-	if scheduled, ok := s.scheduled[document.URI]; ok {
+	if scheduled, ok := s.scheduled[key]; ok {
 		scheduled.timer.Stop()
 	}
-	uri := document.URI
-	serial := s.nextScheduleSerialLocked(uri)
-	s.scheduled[uri] = scheduledAnalysis{serial: serial}
+	serial := s.nextScheduleSerialLocked(key)
+	s.scheduled[key] = scheduledAnalysis{serial: serial}
 	timer := time.AfterFunc(s.debounce, func() {
-		if !s.isScheduled(uri, serial) {
+		if !s.isScheduled(key, serial) {
 			return
 		}
-		if current, ok := s.documents.Get(uri); !ok || current.Version != document.Version || current.Hash != document.Hash {
+		current, ok := s.documents.Get(document.URI)
+		if !ok || current.Version != document.Version || current.Hash != document.Hash {
 			return
 		}
-		result := s.analyzeDocument(document)
-		if !s.isScheduled(uri, serial) {
-			return
+		if !s.publishWorkspaceDiagnostics(notify, current) {
+			publishDiagnostics(notify, protocol.DocumentUri(current.URI), current.Version, s.analyzeDocument(current))
 		}
-		if current, ok := s.documents.Get(uri); !ok || current.Version != document.Version || current.Hash != document.Hash {
-			return
-		}
-		publishDiagnostics(notify, protocol.DocumentUri(uri), document.Version, result)
-		s.clearScheduled(uri, serial)
+		s.clearScheduled(key, serial)
 	})
-	s.scheduled[uri] = scheduledAnalysis{timer: timer, serial: serial}
+	s.scheduled[key] = scheduledAnalysis{timer: timer, serial: serial}
+}
+
+func (s *Server) workspaceScheduleKey(document Document) string {
+	workspaceDocument, ok := s.loadWorkspace(document)
+	if !ok {
+		return document.URI
+	}
+	for _, file := range workspaceDocument.Files {
+		if filepath.Base(file.Path) == "main.dsl" {
+			return "workspace:" + filepath.Dir(file.Path)
+		}
+	}
+	return document.URI
 }
 
 func (s *Server) cancelScheduled(uri string) {
