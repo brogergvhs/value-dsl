@@ -46,7 +46,7 @@ func TestRunRejectsSingleDashVersion(t *testing.T) {
 	if stdout.Len() != 0 {
 		t.Fatalf("expected no stdout output, got %q", stdout.String())
 	}
-	if got := stderr.String(); !strings.Contains(got, "unknown shorthand flag: 'e' in -ersion") {
+	if got := stderr.String(); !strings.Contains(got, "unknown flag: -version") {
 		t.Fatalf("expected single-dash version rejection, got %q", got)
 	}
 }
