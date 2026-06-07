@@ -10,8 +10,18 @@ import (
 	"github.com/brogergvhs/value-dsl/internal/model"
 	"github.com/brogergvhs/value-dsl/internal/sourcepos"
 
+	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
+
+// documentSymbol handles the textDocument/documentSymbol request.
+func (s *Server) documentSymbol(_ *glsp.Context, params *protocol.DocumentSymbolParams) (any, error) {
+	document, result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
+	if !ok {
+		return []protocol.DocumentSymbol{}, nil
+	}
+	return buildDocumentSymbols(s.navigationAnalysis(document.URI, result)), nil
+}
 
 func buildDocumentSymbols(result coreanalysis.Result) []protocol.DocumentSymbol {
 	if result.Index == nil || result.Index.Model == nil {
@@ -39,11 +49,11 @@ func buildOutlineSymbols(lines []grammar.TokenLine, stakeholders []model.Stakeho
 	items := make([]protocol.DocumentSymbol, 0, len(stakeholders)+len(values)+len(requirements))
 
 	for _, stakeholder := range stakeholders {
-		items = append(items, newRangeSymbol(lines, stakeholder.Name, protocol.SymbolKindVariable, stakeholder.Range, nil, nil))
+		items = append(items, newRangeSymbol(lines, stakeholder.Name, symbolKindForDeclarationKind(grammar.DeclarationKindStakeholder), stakeholder.Range, nil, nil))
 	}
 	for _, value := range values {
 		detail := fmt.Sprintf("angle=%0.2f, radius=%0.2f", value.Angle, value.Radius)
-		items = append(items, newRangeSymbol(lines, value.Name, protocol.SymbolKindConstant, value.Range, &detail, nil))
+		items = append(items, newRangeSymbol(lines, value.Name, symbolKindForDeclarationKind(grammar.DeclarationKindValue), value.Range, &detail, nil))
 	}
 	for _, requirement := range requirements {
 		items = append(items, requirementDocumentSymbol(lines, requirement))
@@ -51,6 +61,21 @@ func buildOutlineSymbols(lines []grammar.TokenLine, stakeholders []model.Stakeho
 
 	sortSymbols(items)
 	return items
+}
+
+func symbolKindForDeclarationKind(kind grammar.DeclarationKind) protocol.SymbolKind {
+	switch kind {
+	case grammar.DeclarationKindStakeholder:
+		return protocol.SymbolKindVariable
+	case grammar.DeclarationKindValue:
+		return protocol.SymbolKindConstant
+	case grammar.DeclarationKindRequirement:
+		return protocol.SymbolKindObject
+	case grammar.DeclarationKindAssignment:
+		return protocol.SymbolKindFunction
+	default:
+		return protocol.SymbolKindVariable
+	}
 }
 
 func requirementDocumentSymbol(lines []grammar.TokenLine, requirement model.Requirement) protocol.DocumentSymbol {
@@ -82,7 +107,7 @@ func requirementDocumentSymbol(lines []grammar.TokenLine, requirement model.Requ
 
 	sortSymbols(children)
 	detail := requirement.Action.RawText
-	return newRangeSymbol(lines, requirement.ID, protocol.SymbolKindObject, requirement.Range, &detail, children)
+	return newRangeSymbol(lines, requirement.ID, symbolKindForDeclarationKind(grammar.DeclarationKindRequirement), requirement.Range, &detail, children)
 }
 
 func requirementMetadataDetail(requirement model.Requirement) (string, sourcepos.Range, bool) {

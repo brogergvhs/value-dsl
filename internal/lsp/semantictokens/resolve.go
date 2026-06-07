@@ -23,6 +23,10 @@ func Resolve(text string, result coreanalysis.Result) *protocol.SemanticTokens {
 	return &protocol.SemanticTokens{Data: encode(indexMatches(index, lines))}
 }
 
+func Empty() *protocol.SemanticTokens {
+	return &protocol.SemanticTokens{Data: []protocol.UInteger{}}
+}
+
 func indexMatches(index *docindex.Document, lines []grammar.TokenLine) []Match {
 	if index == nil {
 		return nil
@@ -127,7 +131,7 @@ func validRange(rng sourcepos.Range) bool {
 
 func encode(matches []Match) []protocol.UInteger {
 	if len(matches) == 0 {
-		return nil
+		return []protocol.UInteger{}
 	}
 
 	typeIndexes := indexMap(LegendTypes())

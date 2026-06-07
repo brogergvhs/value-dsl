@@ -151,3 +151,8 @@ If LSP features are missing, verify the server starts:
 ```bash
 ./bin/dsl-lsp -v
 ```
+
+Neovim's built-in LSP client may not send `workspace/didChangeWatchedFiles`
+notifications for deleted or externally changed `.dsl` files. In that case,
+closed-file workspace diagnostics refresh after opening or editing a file in
+the affected workspace.

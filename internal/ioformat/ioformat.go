@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/brogergvhs/value-dsl/internal/grammar"
 	"github.com/brogergvhs/value-dsl/internal/model"
 	"github.com/brogergvhs/value-dsl/internal/semantic"
 )
@@ -230,7 +231,8 @@ func refs(in []model.Ref) []string {
 }
 
 func quote(s string) string {
-	if strings.ContainsAny(s, " \t") {
+	tokens := grammar.TokenizeRawLine(1, s).Tokens
+	if len(tokens) != 1 || tokens[0].Text != s {
 		return "'" + strings.ReplaceAll(s, "'", "\\'") + "'"
 	}
 	return s

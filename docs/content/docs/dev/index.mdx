@@ -33,7 +33,7 @@ flowchart TD
   DI --> R["Analysis Result\nanalysis/result.go"]
 
   R --> CLI["CLI commands\ncmd/dsl-cli/"]
-  R --> LSP["LSP server\nlsp/server.go"]
+  R --> LSP["LSP server\ninternal/lsp"]
   PR --> F["Formatter\nformatting/format.go"]
   F --> FT["Formatted DSL text"]
   SM --> EX["JSON export\nioformat.FromModel"]
@@ -108,7 +108,7 @@ features come from spawning `dsl-lsp` through the LSP client.
 | `internal/lsp`                | LSP server and feature handlers                    | `Server`, `NewServer()`                                                    |
 | `internal/formatting`         | DSL formatter                                      | `Format()`, `FormatForWrite()`                                             |
 | `internal/ioformat`           | Import/export interchange formats                  | `Document`, `Codec`, `Encode()`, `Decode()`                                |
-| `internal/workspace`          | Multi-file workspace loading and source mapping    | `Document`, `LoadDocument()`, `LoadDocumentForOpenFile()`                  |
+| `internal/workspace`          | Multi-file workspace loading and source mapping    | `Document`, `LoadDocument()`, `LoadDocumentForOpenFiles()`                 |
 | `internal/values`             | Schwartz value registry and geometry               | `All()`, `Categories()`, `LookupByName()`                                  |
 | `internal/diagnostics`        | Diagnostic code catalog                            | `SpecFor()`                                                                |
 | `internal/sourcepos`          | Source position and UTF-16 conversion              | `Position`, `Range`                                                        |

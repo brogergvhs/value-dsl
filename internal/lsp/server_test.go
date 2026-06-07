@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brogergvhs/value-dsl/internal/validation"
+
 	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
@@ -36,6 +38,10 @@ func TestInitializeAdvertisesFullTextSync(t *testing.T) {
 	if syncOptions.OpenClose == nil || !*syncOptions.OpenClose {
 		t.Fatalf("expected openClose sync support, got %+v", syncOptions)
 	}
+	workspaceSymbolProvider, ok := result.Capabilities.WorkspaceSymbolProvider.(bool)
+	if !ok || !workspaceSymbolProvider {
+		t.Fatalf("expected workspace symbol support, got %+v", result.Capabilities.WorkspaceSymbolProvider)
+	}
 	hoverProvider, ok := result.Capabilities.HoverProvider.(bool)
 	if !ok || !hoverProvider {
 		t.Fatalf("expected hover support, got %+v", result.Capabilities.HoverProvider)
@@ -43,6 +49,10 @@ func TestInitializeAdvertisesFullTextSync(t *testing.T) {
 	definitionProvider, ok := result.Capabilities.DefinitionProvider.(bool)
 	if !ok || !definitionProvider {
 		t.Fatalf("expected definition support, got %+v", result.Capabilities.DefinitionProvider)
+	}
+	declarationProvider, ok := result.Capabilities.DeclarationProvider.(bool)
+	if !ok || !declarationProvider {
+		t.Fatalf("expected declaration support, got %+v", result.Capabilities.DeclarationProvider)
 	}
 	referencesProvider, ok := result.Capabilities.ReferencesProvider.(bool)
 	if !ok || !referencesProvider {
@@ -52,13 +62,36 @@ func TestInitializeAdvertisesFullTextSync(t *testing.T) {
 	if !ok || !renameProvider {
 		t.Fatalf("expected rename support, got %+v", result.Capabilities.RenameProvider)
 	}
+	codeActionProvider, ok := result.Capabilities.CodeActionProvider.(protocol.CodeActionOptions)
+	if !ok || len(codeActionProvider.CodeActionKinds) != 1 || codeActionProvider.CodeActionKinds[0] != protocol.CodeActionKindQuickFix {
+		t.Fatalf("expected quick-fix code action support, got %+v", result.Capabilities.CodeActionProvider)
+	}
 	documentSymbolProvider, ok := result.Capabilities.DocumentSymbolProvider.(bool)
 	if !ok || !documentSymbolProvider {
 		t.Fatalf("expected document symbol support, got %+v", result.Capabilities.DocumentSymbolProvider)
 	}
+	if result.Capabilities.DocumentLinkProvider == nil {
+		t.Fatalf("expected document link support")
+	}
+	documentHighlightProvider, ok := result.Capabilities.DocumentHighlightProvider.(bool)
+	if !ok || !documentHighlightProvider {
+		t.Fatalf("expected document highlight support, got %+v", result.Capabilities.DocumentHighlightProvider)
+	}
+	foldingRangeProvider, ok := result.Capabilities.FoldingRangeProvider.(bool)
+	if !ok || !foldingRangeProvider {
+		t.Fatalf("expected folding range support, got %+v", result.Capabilities.FoldingRangeProvider)
+	}
+	selectionRangeProvider, ok := result.Capabilities.SelectionRangeProvider.(bool)
+	if !ok || !selectionRangeProvider {
+		t.Fatalf("expected selection range support, got %+v", result.Capabilities.SelectionRangeProvider)
+	}
 	formattingProvider, ok := result.Capabilities.DocumentFormattingProvider.(bool)
 	if !ok || !formattingProvider {
 		t.Fatalf("expected formatting support, got %+v", result.Capabilities.DocumentFormattingProvider)
+	}
+	rangeFormattingProvider, ok := result.Capabilities.DocumentRangeFormattingProvider.(bool)
+	if !ok || !rangeFormattingProvider {
+		t.Fatalf("expected range formatting support, got %+v", result.Capabilities.DocumentRangeFormattingProvider)
 	}
 	semanticProvider, ok := result.Capabilities.SemanticTokensProvider.(protocol.SemanticTokensOptions)
 	if !ok {
@@ -69,6 +102,35 @@ func TestInitializeAdvertisesFullTextSync(t *testing.T) {
 	}
 	if len(semanticProvider.Legend.TokenTypes) == 0 || len(semanticProvider.Legend.TokenModifiers) == 0 {
 		t.Fatalf("expected semantic token legend, got %+v", semanticProvider.Legend)
+	}
+}
+
+func TestInitializedRegistersWatchedFilesWhenSupported(t *testing.T) {
+	server := NewServer()
+	server.watchFiles = true
+
+	type registrationCall struct {
+		method string
+		params protocol.RegistrationParams
+	}
+	calls := make(chan registrationCall, 1)
+	if err := server.initialized(&glsp.Context{Call: func(m string, p any, _ any) {
+		calls <- registrationCall{method: m, params: p.(protocol.RegistrationParams)}
+	}}, &protocol.InitializedParams{}); err != nil {
+		t.Fatalf("initialized() error = %v", err)
+	}
+	var call registrationCall
+	select {
+	case call = <-calls:
+	case <-time.After(time.Second):
+		t.Fatal("expected watched-file registration")
+	}
+	if call.method != string(protocol.ServerClientRegisterCapability) || len(call.params.Registrations) != 1 {
+		t.Fatalf("expected watched-file registration, got method=%q params=%+v", call.method, call.params)
+	}
+	options := call.params.Registrations[0].RegisterOptions.(protocol.DidChangeWatchedFilesRegistrationOptions)
+	if call.params.Registrations[0].Method != string(protocol.MethodWorkspaceDidChangeWatchedFiles) || len(options.Watchers) != 1 || options.Watchers[0].GlobPattern != "**/*.dsl" {
+		t.Fatalf("unexpected watched-file registration: %+v", call.params.Registrations[0])
 	}
 }
 
@@ -112,18 +174,19 @@ stakeholders Worker
 	}
 }
 
+func writeWorkspaceFile(t *testing.T, root, name, text string) {
+	t.Helper()
+	path := filepath.Join(root, name)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+}
+
 func TestDidOpenUsesWorkspaceFilesForMainDSLDiagnostics(t *testing.T) {
 	root := t.TempDir()
-	write := func(name, text string) {
-		t.Helper()
-		path := filepath.Join(root, name)
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("MkdirAll() error = %v", err)
-		}
-		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
-			t.Fatalf("WriteFile() error = %v", err)
-		}
-	}
 
 	mainText := `requirement R1
 system shall notify Worker
@@ -133,11 +196,11 @@ requirement R2
 system shall log location of Worker using Database
 stakeholders Worker, SafetyOfficer
 `
-	write("main.dsl", mainText)
-	write("stakeholders.dsl", "stakeholder Worker\nstakeholder Supervisor\nstakeholder SafetyOfficer\n")
-	write("values/preferences.dsl", "value privacy_pref = 1.58, 0.91\n")
-	write("case_lone.dsl", "stakeholder IgnoredLone\n")
-	write("_lone/ignored.dsl", "stakeholder IgnoredDir\n")
+	writeWorkspaceFile(t, root, "main.dsl", mainText)
+	writeWorkspaceFile(t, root, "stakeholders.dsl", "stakeholder Worker\nstakeholder Supervisor\nstakeholder SafetyOfficer\n")
+	writeWorkspaceFile(t, root, "values/preferences.dsl", "value privacy_pref = 1.58, 0.91\n")
+	writeWorkspaceFile(t, root, "case_lone.dsl", "stakeholder IgnoredLone\n")
+	writeWorkspaceFile(t, root, "_lone/ignored.dsl", "stakeholder IgnoredDir\n")
 
 	server := NewServer()
 	var published protocol.PublishDiagnosticsParams
@@ -165,16 +228,6 @@ stakeholders Worker, SafetyOfficer
 
 func TestDidOpenUsesWorkspaceFilesForSiblingDiagnostics(t *testing.T) {
 	root := t.TempDir()
-	write := func(name, text string) {
-		t.Helper()
-		path := filepath.Join(root, name)
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("MkdirAll() error = %v", err)
-		}
-		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
-			t.Fatalf("WriteFile() error = %v", err)
-		}
-	}
 
 	assignmentsText := `assignment R1
 Worker -> safety_pref
@@ -184,7 +237,7 @@ assignment R2
 Worker -> privacy_pref
 SafetyOfficer -> safety_pref
 `
-	write("main.dsl", `requirement R1
+	writeWorkspaceFile(t, root, "main.dsl", `requirement R1
 system shall notify Worker
 stakeholders Worker, Supervisor
 
@@ -192,9 +245,9 @@ requirement R2
 system shall log location of Worker using Database
 stakeholders Worker, SafetyOfficer
 `)
-	write("stakeholders.dsl", "stakeholder Worker\nstakeholder Supervisor\nstakeholder SafetyOfficer\n")
-	write("assignments.dsl", assignmentsText)
-	write("values/preferences.dsl", "value privacy_pref = 1.58, 0.91\nvalue safety_pref = 0.42, 0.88\n")
+	writeWorkspaceFile(t, root, "stakeholders.dsl", "stakeholder Worker\nstakeholder Supervisor\nstakeholder SafetyOfficer\n")
+	writeWorkspaceFile(t, root, "assignments.dsl", assignmentsText)
+	writeWorkspaceFile(t, root, "values/preferences.dsl", "value privacy_pref = 1.58, 0.91\nvalue safety_pref = 0.42, 0.88\n")
 
 	server := NewServer()
 	var published protocol.PublishDiagnosticsParams
@@ -222,24 +275,14 @@ stakeholders Worker, SafetyOfficer
 
 func TestWorkspaceSiblingNavigationUsesWorkspaceSymbolsAndFileLocations(t *testing.T) {
 	root := t.TempDir()
-	write := func(name, text string) {
-		t.Helper()
-		path := filepath.Join(root, name)
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("MkdirAll() error = %v", err)
-		}
-		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
-			t.Fatalf("WriteFile() error = %v", err)
-		}
-	}
 
 	equipmentText := `requirement R3
 system shall monitor protective_equipment_usage of Worker using Sensor
 stakeholders Worker, SafetyOfficer
 `
-	write("main.dsl", "requirement R1\nsystem shall notify Worker\nstakeholders Worker\n")
-	write("stakeholders.dsl", "stakeholder Worker\nstakeholder SafetyOfficer\n")
-	write("features/equipment.dsl", equipmentText)
+	writeWorkspaceFile(t, root, "main.dsl", "requirement R1\nsystem shall notify Worker\nstakeholders Worker\n")
+	writeWorkspaceFile(t, root, "stakeholders.dsl", "stakeholder Worker\nstakeholder SafetyOfficer\n")
+	writeWorkspaceFile(t, root, "features/equipment.dsl", equipmentText)
 
 	server := NewServer()
 	equipmentURI := protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "features", "equipment.dsl")}).String())
@@ -290,6 +333,371 @@ stakeholders Worker, SafetyOfficer
 	}
 	if tokens == nil || len(tokens.Data) == 0 {
 		t.Fatalf("expected workspace-backed semantic tokens")
+	}
+
+	folds, err := server.foldingRange(&glsp.Context{}, &protocol.FoldingRangeParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: equipmentURI},
+	})
+	if err != nil {
+		t.Fatalf("foldingRange() error = %v", err)
+	}
+	if len(folds) != 1 || folds[0].StartLine != 0 || folds[0].EndLine != 2 {
+		t.Fatalf("expected only equipment requirement fold with local line numbers, got %+v", folds)
+	}
+
+	symbols, err := server.workspaceSymbol(&glsp.Context{}, &protocol.WorkspaceSymbolParams{Query: "Worker"})
+	if err != nil {
+		t.Fatalf("workspaceSymbol() error = %v", err)
+	}
+	if len(symbols) != 1 || symbols[0].Name != "Worker" || symbols[0].Location.URI != stakeholdersURI {
+		t.Fatalf("expected Worker workspace symbol in stakeholders.dsl, got %+v", symbols)
+	}
+}
+
+func TestWorkspaceSiblingAnalysisInvalidatesWhenOpenFileChanges(t *testing.T) {
+	root := t.TempDir()
+
+	mainText := `stakeholder Worker
+value privacy_pref = 1.58, 0.91
+
+requirement R1
+system shall notify Worker
+stakeholders Worker
+`
+	assignmentsText := `assignment R1
+Worker -> privacy_pref
+`
+	writeWorkspaceFile(t, root, "main.dsl", mainText)
+	writeWorkspaceFile(t, root, "assignments.dsl", assignmentsText)
+
+	server := NewServer()
+	server.debounce = time.Hour
+	defer server.cancelAllScheduled()
+
+	mainURI := protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "main.dsl")}).String())
+	assignmentsURI := protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "assignments.dsl")}).String())
+
+	if err := server.didOpen(&glsp.Context{}, &protocol.DidOpenTextDocumentParams{
+		TextDocument: protocol.TextDocumentItem{
+			URI:     mainURI,
+			Version: 1,
+			Text:    mainText,
+		},
+	}); err != nil {
+		t.Fatalf("didOpen(main) error = %v", err)
+	}
+	if err := server.didOpen(&glsp.Context{}, &protocol.DidOpenTextDocumentParams{
+		TextDocument: protocol.TextDocumentItem{
+			URI:     assignmentsURI,
+			Version: 1,
+			Text:    assignmentsText,
+		},
+	}); err != nil {
+		t.Fatalf("didOpen(assignments) error = %v", err)
+	}
+
+	_, initialResult, ok := server.currentDocumentAnalysis(assignmentsURI)
+	if !ok {
+		t.Fatal("expected open assignments document")
+	}
+	if diagnostics := initialResult.AllDiagnostics(); len(diagnostics) != 0 {
+		t.Fatalf("expected clean initial assignments diagnostics, got %+v", diagnostics)
+	}
+
+	changedMainText := strings.Replace(mainText, "requirement R1", "requirement R7", 1)
+	if err := server.didChange(&glsp.Context{}, &protocol.DidChangeTextDocumentParams{
+		TextDocument: protocol.VersionedTextDocumentIdentifier{
+			TextDocumentIdentifier: protocol.TextDocumentIdentifier{URI: mainURI},
+			Version:                2,
+		},
+		ContentChanges: []any{protocol.TextDocumentContentChangeEventWhole{Text: changedMainText}},
+	}); err != nil {
+		t.Fatalf("didChange(main) error = %v", err)
+	}
+
+	definitionResult, err := server.definition(&glsp.Context{}, &protocol.DefinitionParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: assignmentsURI},
+			Position:     protocol.Position{Line: 0, Character: 11},
+		},
+	})
+	if err != nil {
+		t.Fatalf("definition() error = %v", err)
+	}
+	if definitions := definitionResult.([]protocol.Location); len(definitions) != 0 {
+		t.Fatalf("expected stale R1 definition to disappear after main.dsl edit, got %+v", definitions)
+	}
+
+	_, changedResult, ok := server.currentDocumentAnalysis(assignmentsURI)
+	if !ok {
+		t.Fatal("expected open assignments document after main change")
+	}
+	foundUnknownRequirement := false
+	for _, diagnostic := range changedResult.AllDiagnostics() {
+		if diagnostic.Code == validation.CodeAssignmentRequirementUnknown {
+			foundUnknownRequirement = true
+			break
+		}
+	}
+	if !foundUnknownRequirement {
+		t.Fatalf("expected assignment unknown requirement diagnostic after main.dsl edit, got %+v", changedResult.AllDiagnostics())
+	}
+}
+
+func TestWorkspaceDiagnosticsPublishClosedSiblingErrors(t *testing.T) {
+	root := t.TempDir()
+
+	mainText := `stakeholder Worker
+value privacy_pref = 1.58, 0.91
+
+requirement R1
+system shall notify Worker
+stakeholders Worker
+`
+	writeWorkspaceFile(t, root, "main.dsl", mainText)
+	writeWorkspaceFile(t, root, "assignments.dsl", "assignment R1\nWorker -> privacy_pref\n")
+
+	server := NewServer()
+	server.debounce = 10 * time.Millisecond
+	defer server.cancelAllScheduled()
+
+	mainURI := protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "main.dsl")}).String())
+	assignmentsURI := protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "assignments.dsl")}).String())
+	var mu sync.Mutex
+	published := map[protocol.DocumentUri]protocol.PublishDiagnosticsParams{}
+	context := &glsp.Context{
+		Notify: func(_ string, params any) {
+			diagnostics := params.(protocol.PublishDiagnosticsParams)
+			mu.Lock()
+			published[diagnostics.URI] = diagnostics
+			mu.Unlock()
+		},
+	}
+
+	if err := server.didOpen(context, &protocol.DidOpenTextDocumentParams{
+		TextDocument: protocol.TextDocumentItem{URI: mainURI, Version: 1, Text: mainText},
+	}); err != nil {
+		t.Fatalf("didOpen(main) error = %v", err)
+	}
+	changedMainText := strings.Replace(mainText, "requirement R1", "requirement R7", 1)
+	if err := server.didChange(context, &protocol.DidChangeTextDocumentParams{
+		TextDocument: protocol.VersionedTextDocumentIdentifier{
+			TextDocumentIdentifier: protocol.TextDocumentIdentifier{URI: mainURI},
+			Version:                2,
+		},
+		ContentChanges: []any{protocol.TextDocumentContentChangeEventWhole{Text: changedMainText}},
+	}); err != nil {
+		t.Fatalf("didChange(main) error = %v", err)
+	}
+	time.Sleep(40 * time.Millisecond)
+
+	mu.Lock()
+	assignmentsDiagnostics, ok := published[assignmentsURI]
+	mu.Unlock()
+	if !ok {
+		t.Fatalf("expected diagnostics publish for closed assignments.dsl, got %+v", published)
+	}
+	if assignmentsDiagnostics.Version != nil {
+		t.Fatalf("expected closed-file diagnostics without version, got %+v", assignmentsDiagnostics.Version)
+	}
+	if len(assignmentsDiagnostics.Diagnostics) != 1 || assignmentsDiagnostics.Diagnostics[0].Code == nil ||
+		assignmentsDiagnostics.Diagnostics[0].Code.Value != string(validation.CodeAssignmentRequirementUnknown) {
+		t.Fatalf("expected closed assignments unknown requirement diagnostic, got %+v", assignmentsDiagnostics.Diagnostics)
+	}
+}
+
+func TestWatchedFileChangePublishesClosedWorkspaceDiagnostics(t *testing.T) {
+	root := t.TempDir()
+	mainText := `stakeholder Worker
+value privacy_pref = 1.58, 0.91
+
+requirement R1
+system shall notify Worker
+stakeholders Worker
+`
+	writeWorkspaceFile(t, root, "main.dsl", mainText)
+	writeWorkspaceFile(t, root, "assignments.dsl", "assignment R1\nWorker -> privacy_pref\n")
+
+	server := NewServer()
+	server.debounce = 10 * time.Millisecond
+	defer server.cancelAllScheduled()
+
+	assignmentsURI := protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "assignments.dsl")}).String())
+	var mu sync.Mutex
+	published := map[protocol.DocumentUri]protocol.PublishDiagnosticsParams{}
+	context := &glsp.Context{Notify: func(_ string, params any) {
+		diagnostics := params.(protocol.PublishDiagnosticsParams)
+		mu.Lock()
+		published[diagnostics.URI] = diagnostics
+		mu.Unlock()
+	}}
+
+	writeWorkspaceFile(t, root, "main.dsl", strings.Replace(mainText, "requirement R1", "requirement R7", 1))
+	if err := server.didChangeWatchedFiles(context, &protocol.DidChangeWatchedFilesParams{Changes: []protocol.FileEvent{{
+		URI:  protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "main.dsl")}).String()),
+		Type: protocol.FileChangeTypeChanged,
+	}}}); err != nil {
+		t.Fatalf("didChangeWatchedFiles() error = %v", err)
+	}
+	time.Sleep(40 * time.Millisecond)
+
+	mu.Lock()
+	diagnostics := published[assignmentsURI].Diagnostics
+	mu.Unlock()
+	if len(diagnostics) != 1 || diagnostics[0].Code == nil ||
+		diagnostics[0].Code.Value != string(validation.CodeAssignmentRequirementUnknown) {
+		t.Fatalf("expected watched change to publish closed assignments diagnostic, got %+v", diagnostics)
+	}
+}
+
+func TestWatchedFileDeletePublishesWorkspaceDiagnostics(t *testing.T) {
+	root := t.TempDir()
+	stakeholdersPath := filepath.Join(root, "stakeholders.dsl")
+	writeWorkspaceFile(t, root, "main.dsl", "requirement R1\nsystem shall notify Worker\nstakeholders Worker\n")
+	writeWorkspaceFile(t, root, "stakeholders.dsl", "stakeholder Worker\n")
+
+	server := NewServer()
+	server.debounce = 10 * time.Millisecond
+	defer server.cancelAllScheduled()
+
+	mainURI := protocol.DocumentUri((&url.URL{Scheme: "file", Path: filepath.Join(root, "main.dsl")}).String())
+	var mu sync.Mutex
+	published := map[protocol.DocumentUri]protocol.PublishDiagnosticsParams{}
+	context := &glsp.Context{Notify: func(_ string, params any) {
+		diagnostics := params.(protocol.PublishDiagnosticsParams)
+		mu.Lock()
+		published[diagnostics.URI] = diagnostics
+		mu.Unlock()
+	}}
+
+	if err := os.Remove(stakeholdersPath); err != nil {
+		t.Fatalf("Remove() error = %v", err)
+	}
+	if err := server.didChangeWatchedFiles(context, &protocol.DidChangeWatchedFilesParams{Changes: []protocol.FileEvent{{
+		URI:  protocol.DocumentUri((&url.URL{Scheme: "file", Path: stakeholdersPath}).String()),
+		Type: protocol.FileChangeTypeDeleted,
+	}}}); err != nil {
+		t.Fatalf("didChangeWatchedFiles() error = %v", err)
+	}
+	time.Sleep(40 * time.Millisecond)
+
+	mu.Lock()
+	diagnostics := published[mainURI].Diagnostics
+	mu.Unlock()
+	if len(diagnostics) == 0 {
+		t.Fatalf("expected deleted stakeholders.dsl to publish main.dsl diagnostics, got %+v", published)
+	}
+}
+
+func TestWorkspaceSymbolReturnsOpenDocumentDeclarations(t *testing.T) {
+	server := NewServer()
+	documentText := `stakeholder Worker
+value privacy_pref = 1.58, 0.91
+
+requirement R1
+system shall notify Worker
+stakeholders Worker
+`
+
+	server.documents.Set("file:///spec.dsl", 1, documentText)
+	server.analyzeDocument(server.documents.Set("file:///spec.dsl", 1, documentText))
+
+	symbols, err := server.workspaceSymbol(&glsp.Context{}, &protocol.WorkspaceSymbolParams{Query: ""})
+	if err != nil {
+		t.Fatalf("workspaceSymbol() error = %v", err)
+	}
+	if len(symbols) != 3 {
+		t.Fatalf("expected stakeholder, value, and requirement symbols, got %+v", symbols)
+	}
+
+	filtered, err := server.workspaceSymbol(&glsp.Context{}, &protocol.WorkspaceSymbolParams{Query: "privacy"})
+	if err != nil {
+		t.Fatalf("workspaceSymbol(query) error = %v", err)
+	}
+	if len(filtered) != 1 || filtered[0].Name != "privacy_pref" || filtered[0].Kind != protocol.SymbolKindConstant {
+		t.Fatalf("expected filtered value symbol, got %+v", filtered)
+	}
+}
+
+func TestFoldingRangeReturnsDeclarationGroupsAndBlocks(t *testing.T) {
+	server := NewServer()
+	documentText := `stakeholder Worker
+stakeholder Manager
+
+value privacy_pref = 1.58, 0.91
+value safety_pref = 0.42, 0.88
+
+requirement R1
+when Worker enters Zone
+system shall notify Worker
+stakeholders Worker
+
+assignment R1
+Worker -> privacy_pref
+Manager -> safety_pref
+`
+
+	server.documents.Set("file:///spec.dsl", 1, documentText)
+	server.analyzeDocument(server.documents.Set("file:///spec.dsl", 1, documentText))
+
+	folds, err := server.foldingRange(&glsp.Context{}, &protocol.FoldingRangeParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///spec.dsl"},
+	})
+	if err != nil {
+		t.Fatalf("foldingRange() error = %v", err)
+	}
+
+	want := [][2]protocol.UInteger{
+		{0, 1},
+		{3, 4},
+		{6, 9},
+		{11, 13},
+	}
+	if len(folds) != len(want) {
+		t.Fatalf("expected folds %v, got %+v", want, folds)
+	}
+	for i, fold := range folds {
+		if fold.StartLine != want[i][0] || fold.EndLine != want[i][1] {
+			t.Fatalf("fold %d = %+v, want start=%d end=%d", i, fold, want[i][0], want[i][1])
+		}
+	}
+}
+
+func TestSelectionRangeExpandsTokenToFoldBlock(t *testing.T) {
+	server := NewServer()
+	documentText := `stakeholder Worker
+stakeholder Manager
+
+value privacy_pref = 1.58, 0.91
+value safety_pref = 0.42, 0.88
+
+requirement R1
+when Worker enters Zone
+system shall notify Worker
+stakeholders Worker
+`
+
+	server.documents.Set("file:///spec.dsl", 1, documentText)
+	server.analyzeDocument(server.documents.Set("file:///spec.dsl", 1, documentText))
+
+	ranges, err := server.selectionRange(&glsp.Context{}, &protocol.SelectionRangeParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///spec.dsl"},
+		Positions: []protocol.Position{
+			{Line: 8, Character: 20},
+			{Line: 0, Character: 14},
+		},
+	})
+	if err != nil {
+		t.Fatalf("selectionRange() error = %v", err)
+	}
+	if len(ranges) != 2 {
+		t.Fatalf("expected one selection range per position, got %+v", ranges)
+	}
+	if ranges[0].Range.Start.Line != 8 || ranges[0].Parent == nil || ranges[0].Parent.Range.Start.Line != 6 || ranges[0].Parent.Range.End.Line != 9 {
+		t.Fatalf("expected token selection with requirement block parent, got %+v", ranges[0])
+	}
+	if ranges[1].Range.Start.Line != 0 || ranges[1].Parent == nil || ranges[1].Parent.Range.Start.Line != 0 || ranges[1].Parent.Range.End.Line != 1 {
+		t.Fatalf("expected stakeholder token selection with grouped declaration parent, got %+v", ranges[1])
 	}
 }
 
@@ -451,6 +859,39 @@ stakeholders Worker
 	}
 }
 
+func TestRangeFormattingReturnsLineBoundedEdit(t *testing.T) {
+	server := NewServer()
+	documentText := `stakeholder Worker
+value privacy_pref = 1.5800, 0.9100
+value safety_pref = 0.4200, 0.8800
+requirement R1
+system shall notify Worker
+stakeholders Worker
+`
+
+	server.documents.Set("file:///spec.dsl", 1, documentText)
+
+	edits, err := server.rangeFormat(&glsp.Context{}, &protocol.DocumentRangeFormattingParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///spec.dsl"},
+		Range: protocol.Range{
+			Start: protocol.Position{Line: 1, Character: 0},
+			End:   protocol.Position{Line: 3, Character: 0},
+		},
+	})
+	if err != nil {
+		t.Fatalf("rangeFormat() error = %v", err)
+	}
+	if len(edits) != 1 {
+		t.Fatalf("expected one range formatting edit, got %d", len(edits))
+	}
+	if edits[0].Range.Start.Line != 1 || edits[0].Range.End.Line != 3 {
+		t.Fatalf("expected edit to stay within selected lines, got %+v", edits[0].Range)
+	}
+	if edits[0].NewText != "value privacy_pref = 1.58, 0.91\nvalue safety_pref = 0.42, 0.88\n" {
+		t.Fatalf("unexpected range formatted text: %q", edits[0].NewText)
+	}
+}
+
 func TestSemanticTokensReturnMeaningAwareHighlightData(t *testing.T) {
 	server := NewServer()
 	documentText := `stakeholder Worker
@@ -480,6 +921,31 @@ Worker -> privacy_pref // inline note
 	}
 	if len(result.Data)%5 != 0 {
 		t.Fatalf("semantic token data length must be divisible by 5, got %d", len(result.Data))
+	}
+}
+
+func TestSemanticTokensReturnEmptyDataArray(t *testing.T) {
+	server := NewServer()
+
+	result, err := server.semanticTokens(&glsp.Context{}, &protocol.SemanticTokensParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///missing.dsl"},
+	})
+	if err != nil {
+		t.Fatalf("semanticTokens(missing) error = %v", err)
+	}
+	if result == nil || result.Data == nil || len(result.Data) != 0 {
+		t.Fatalf("expected missing document to return empty semantic token data, got %+v", result)
+	}
+
+	server.documents.Set("file:///empty.dsl", 1, "\n")
+	result, err = server.semanticTokens(&glsp.Context{}, &protocol.SemanticTokensParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///empty.dsl"},
+	})
+	if err != nil {
+		t.Fatalf("semanticTokens(empty) error = %v", err)
+	}
+	if result == nil || result.Data == nil || len(result.Data) != 0 {
+		t.Fatalf("expected empty document to return empty semantic token data, got %+v", result)
 	}
 }
 
@@ -519,6 +985,38 @@ linked_to HazardAnalysis
 	}
 }
 
+func TestDocumentLinkReturnsTraceabilityURLs(t *testing.T) {
+	server := NewServer()
+	documentText := `stakeholder Worker
+
+requirement R1
+system shall notify Worker
+stakeholders Worker
+linked_to "google.com/search?q=lsp"
+linked_to SAFETY-001
+linked_to "https://example.com/spec"
+`
+
+	server.documents.Set("file:///spec.dsl", 1, documentText)
+	server.analyzeDocument(server.documents.Set("file:///spec.dsl", 1, documentText))
+
+	links, err := server.documentLink(&glsp.Context{}, &protocol.DocumentLinkParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///spec.dsl"},
+	})
+	if err != nil {
+		t.Fatalf("documentLink() error = %v", err)
+	}
+	if len(links) != 2 {
+		t.Fatalf("expected two document links, got %+v", links)
+	}
+	if links[0].Target == nil || string(*links[0].Target) != "https://google.com/search?q=lsp" || links[0].Range.Start.Line != 5 || links[0].Range.Start.Character == 0 {
+		t.Fatalf("unexpected first document link: %+v", links[0])
+	}
+	if links[1].Target == nil || string(*links[1].Target) != "https://example.com/spec" || links[1].Range.Start.Line != 7 || links[1].Range.Start.Character == 0 {
+		t.Fatalf("unexpected second document link: %+v", links[1])
+	}
+}
+
 func TestDefinitionReturnsStakeholderDeclaration(t *testing.T) {
 	server := NewServer()
 	documentText := `stakeholder Worker
@@ -553,6 +1051,36 @@ stakeholders Worker
 	}
 }
 
+func TestDeclarationReusesDefinition(t *testing.T) {
+	server := NewServer()
+	documentText := `stakeholder Worker
+
+requirement R1
+system shall notify Worker
+`
+
+	server.documents.Set("file:///spec.dsl", 1, documentText)
+	server.analyzeDocument(server.documents.Set("file:///spec.dsl", 1, documentText))
+
+	resultValue, err := server.declaration(&glsp.Context{}, &protocol.DeclarationParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: "file:///spec.dsl"},
+			Position:     protocol.Position{Line: 3, Character: 20},
+		},
+	})
+	if err != nil {
+		t.Fatalf("declaration() error = %v", err)
+	}
+
+	result, ok := resultValue.([]protocol.Location)
+	if !ok {
+		t.Fatalf("unexpected declaration result type: %T", resultValue)
+	}
+	if len(result) != 1 || result[0].Range.Start.Line != 0 || result[0].Range.Start.Character != 12 {
+		t.Fatalf("expected declaration to reuse definition location, got %+v", result)
+	}
+}
+
 func TestReferencesReturnsAllMatchingLocations(t *testing.T) {
 	server := NewServer()
 	documentText := `stakeholder Worker
@@ -578,6 +1106,40 @@ stakeholders Worker
 
 	if len(result) != 3 {
 		t.Fatalf("expected declaration plus two references, got %+v", result)
+	}
+}
+
+func TestDocumentHighlightReturnsDeclarationAndReferences(t *testing.T) {
+	server := NewServer()
+	documentText := `stakeholder Worker
+
+requirement R1
+system shall notify Worker
+stakeholders Worker
+`
+
+	server.documents.Set("file:///spec.dsl", 1, documentText)
+	server.analyzeDocument(server.documents.Set("file:///spec.dsl", 1, documentText))
+
+	highlights, err := server.documentHighlight(&glsp.Context{}, &protocol.DocumentHighlightParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: "file:///spec.dsl"},
+			Position:     protocol.Position{Line: 3, Character: 20},
+		},
+	})
+	if err != nil {
+		t.Fatalf("documentHighlight() error = %v", err)
+	}
+	if len(highlights) != 3 {
+		t.Fatalf("expected declaration plus two references, got %+v", highlights)
+	}
+	if highlights[0].Range.Start.Line != 0 || highlights[0].Kind == nil || *highlights[0].Kind != protocol.DocumentHighlightKindWrite {
+		t.Fatalf("expected write highlight on declaration, got %+v", highlights[0])
+	}
+	for _, highlight := range highlights[1:] {
+		if highlight.Kind == nil || *highlight.Kind != protocol.DocumentHighlightKindRead {
+			t.Fatalf("expected read highlight on reference, got %+v", highlight)
+		}
 	}
 }
 

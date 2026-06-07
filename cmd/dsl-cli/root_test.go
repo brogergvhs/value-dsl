@@ -161,7 +161,8 @@ func TestCLIImportCommandWritesDSL(t *testing.T) {
     "ears": [
       "when Worker enters DangerousArea",
       "system shall track location of Worker using Camera",
-      "stakeholders Worker, Manager"
+      "stakeholders Worker, Manager",
+      "linked_to \"google.com/search?q=lsp\""
     ]
   }],
   "assignments": [{
@@ -191,7 +192,7 @@ func TestCLIImportCommandWritesDSL(t *testing.T) {
 		t.Fatalf("ReadFile() error = %v", err)
 	}
 	got := string(content)
-	for _, want := range []string{"stakeholder Worker", "value privacy_pref = 1.58, 0.91", "when Worker enters DangerousArea", "assignment R1"} {
+	for _, want := range []string{"stakeholder Worker", "value privacy_pref = 1.58, 0.91", "when Worker enters DangerousArea", "linked_to 'google.com/search?q=lsp'", "assignment R1"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected imported DSL to contain %q, got %s", want, got)
 		}

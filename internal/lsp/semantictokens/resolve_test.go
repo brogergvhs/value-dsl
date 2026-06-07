@@ -68,6 +68,13 @@ func TestGraphMatchesRemainAvailableInPartiallyBrokenFile(t *testing.T) {
 	assertNoSemanticRole(t, text, matches, "unknown", 3)
 }
 
+func TestResolveReturnsEmptyDataArrayWhenNoTokens(t *testing.T) {
+	tokens := Resolve("", mustAnalyzeText(t, ""))
+	if tokens == nil || tokens.Data == nil || len(tokens.Data) != 0 {
+		t.Fatalf("expected empty semantic token data, got %+v", tokens)
+	}
+}
+
 func assertSemanticRole(t *testing.T, text string, matches []Match, token string, line int, want Role) {
 	t.Helper()
 

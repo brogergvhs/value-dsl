@@ -6,6 +6,9 @@ The extension provides syntax highlighting for `.dsl` files and starts the
 `dsl-lsp` language server for diagnostics, symbols, completion, and related
 editor features.
 
+It also forwards `**/*.dsl` file create/change/delete events to the language
+server so closed workspace files can update diagnostics.
+
 It is not currently available on the marketplace, so please run it from local source.
 
 ## Run From Source

@@ -215,11 +215,23 @@ func appendScalar(parts []string, value string, quote bool) []string {
 	if value = strings.TrimSpace(value); value == "" {
 		return parts
 	}
-	if quote && strings.ContainsAny(value, " \t") {
-		value = "'" + value + "'"
+	if quote && needsQuotes(value) {
+		value = quoteString(value)
 	}
 
 	return append(parts, value)
+}
+
+func quoteString(value string) string {
+	if strings.Contains(value, "'") && !strings.Contains(value, `"`) {
+		return `"` + value + `"`
+	}
+	return "'" + value + "'"
+}
+
+func needsQuotes(value string) bool {
+	tokens := grammar.TokenizeRawLine(1, value).Tokens
+	return len(tokens) != 1 || tokens[0].Text != value
 }
 
 func patternHasData(pattern []grammar.Matcher, node ast.GenericNode, depth int) bool {
@@ -411,12 +423,6 @@ func (o *output) emit(line int, text string, raw bool) {
 	o.write(text)
 }
 
-func (o *output) blank() {
-	if o.wrote && !o.blanked {
-		o.write("")
-	}
-}
-
 func (o *output) string() string {
 	for _, comment := range o.comments.trailing {
 		o.write(lineComment(grammar.Compiled.Spec.LineComment, comment))
@@ -453,8 +459,8 @@ func (o *output) emitDocument(parsed parser.ParseResult, plans map[int]linePlan)
 		}
 
 		if plan, ok := plans[line.Line]; ok {
-			if plan.blockTop {
-				o.blank()
+			if plan.blockTop && o.wrote && !o.blanked {
+				o.write("")
 			}
 			o.emit(line.Line, plan.text, plan.raw)
 		}

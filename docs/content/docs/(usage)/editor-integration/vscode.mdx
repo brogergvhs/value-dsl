@@ -16,6 +16,10 @@ It provides:
 | TextMate grammar | Basic `.dsl` syntax highlighting                            |
 | `dsl-lsp` client | Diagnostics, completion, hover, symbols, references, rename |
 
+The extension also watches `**/*.dsl` and forwards file create/change/delete
+events to the language server. This lets workspace diagnostics update when a
+closed sibling file is edited or deleted.
+
 ## Published Extension Status
 
 In theory, the repository can publish a VS Code extension to the Marketplace.

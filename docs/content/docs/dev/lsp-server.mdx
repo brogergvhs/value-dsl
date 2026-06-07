@@ -3,7 +3,9 @@ title: 'LSP Server'
 description: 'Server internals, document lifecycle, debounce logic, analysis caching, and how to add new features.'
 ---
 
-The LSP server wraps `github.com/tliron/glsp`, which handles JSON-RPC transport and LSP protocol encoding. The server itself manages document state, analysis scheduling, and feature dispatch.
+The LSP server wraps `github.com/tliron/glsp`, which handles JSON-RPC
+transport and LSP protocol encoding. The server itself manages document state,
+workspace analysis, analysis scheduling, and feature dispatch.
 
 ## Library
 
@@ -15,6 +17,27 @@ The LSP server wraps `github.com/tliron/glsp`, which handles JSON-RPC transport 
 
 The `Server` struct wraps `glsp.Server` and adds all application-level state.
 
+## File Layout
+
+Request handlers live in focused files with their local helpers:
+
+| File                    | Contents                                                        |
+| ----------------------- | --------------------------------------------------------------- |
+| `server.go`             | `Server`, constructor, version, and handler registration        |
+| `lifecycle.go`          | `initialize`, `initialized`, `shutdown`, `exit`                 |
+| `text_document_sync.go` | `didOpen`, `didChange`, `didClose`, text-change parsing         |
+| `watched_files.go`      | `workspace/didChangeWatchedFiles`                               |
+| `workspace_analysis.go` | Workspace loading, diagnostics fan-out, navigation fallback     |
+| `scheduling.go`         | Debounced workspace analysis timers                             |
+| Feature files           | One file per LSP feature, such as `hover.go` or `definition.go` |
+
+Handler methods use the comment form:
+
+```go
+// complete handles the textDocument/completion request.
+func (s *Server) complete(...)
+```
+
 ## Server Fields
 
 | Field           | Type                           | Purpose                                                                              |
@@ -25,8 +48,9 @@ The `Server` struct wraps `glsp.Server` and adds all application-level state.
 | `scheduleMu`    | `sync.Mutex`                   | Protects pending timer state                                                         |
 | `scheduled`     | `map[string]scheduledAnalysis` | Pending debounce timers per URI                                                      |
 | `serials`       | `map[string]uint64`            | Monotonic counter per URI for stale-callback detection                               |
-| `debounce`      | `time.Duration`                | 200 ms (hardcoded)                                                                   |
+| `debounce`      | `time.Duration`                | Loaded from LSP config                                                               |
 | `logger`        | `*slog.Logger`                 | Optional structured logger                                                           |
+| `watchFiles`    | `bool`                         | Whether the client supports watched-file dynamic registration                        |
 
 ## Document Lifecycle
 
@@ -34,13 +58,16 @@ The `Server` struct wraps `glsp.Server` and adds all application-level state.
 
 1. Cancel any pending debounce timer for this URI
 2. `documents.Set(uri, text, version)` — store document
-3. `analyzeDocument(document)` — run pipeline immediately (no debounce on open)
-4. `publishDiagnostics(notify, uri, version, result)`
+3. Clear cached analysis for open files in the same workspace
+4. `publishWorkspaceDiagnostics(notify, document)` — run pipeline immediately
+5. If the file is standalone, publish diagnostics for only that document
 
 **`textDocument/didChange`**
 
-1. `documents.Update(uri, contentChanges, version)` — apply incremental text changes
-2. `scheduleAnalysis(notify, document)` — debounce, then analyze and publish
+1. `fullTextFromChanges(contentChanges)` — read the full synced document text
+2. `documents.Update(uri, version, text)` — replace stored document text
+3. Clear cached sibling analysis for open files in the same workspace
+4. `scheduleWorkspaceAnalysis(notify, document)` — debounce, then analyze and publish
 
 **`textDocument/didClose`**
 
@@ -48,17 +75,35 @@ The `Server` struct wraps `glsp.Server` and adds all application-level state.
 2. `documents.Delete(uri)`
 3. `analysisCache.Delete(uri)`
 4. `publishDiagnostics(notify, uri, 0, coreanalysis.Result{})` — clear diagnostics in editor
+5. Schedule one remaining open sibling document, if any, to refresh workspace diagnostics
+
+**`workspace/didChangeWatchedFiles`**
+
+1. Ignore non-file URIs and non-`.dsl` paths
+2. Delete closed-file cache entries for changed files
+3. For deleted files, publish empty diagnostics for that URI
+4. Schedule workspace analysis using the changed URI as the entry point
+
+This path depends on the editor sending watched-file notifications. The VS Code
+extension registers a `**/*.dsl` file watcher. Editors that do not send
+`workspace/didChangeWatchedFiles` will not refresh closed-file diagnostics for
+external file changes until an affected workspace file is opened or edited.
 
 ## Debounce Logic
 
-`scheduleAnalysis(notify, document)` implements per-URI debouncing:
+`scheduleWorkspaceAnalysis(notify, document)` implements per-workspace
+debouncing:
 
-1. Increment `serials[uri]` → capture `serial`
-2. `time.AfterFunc(200ms, func() { ... })`
-3. Callback checks `isScheduled(uri, serial)` — if the serial has been superseded (another change arrived), the callback returns without publishing
-4. On match: run `analyzeDocument`, then `publishDiagnostics`
+1. Compute a schedule key. Files in the same `main.dsl` workspace share one
+   key; standalone files use their URI.
+2. Increment `serials[key]` and capture the serial.
+3. `time.AfterFunc(debounce, func() { ... })`
+4. Callback checks `isScheduled(key, serial)`. If another change superseded it,
+   the callback returns without publishing.
+5. On match: run workspace analysis and publish diagnostics per source file.
 
-This ensures that rapid edits (e.g., typing) do not trigger a cascade of pipeline runs — only the last change within a 200 ms window produces a diagnostic publish.
+This ensures rapid edits do not trigger a cascade of pipeline runs. Only the
+last change inside the debounce window produces diagnostic publishes.
 
 ## Analysis and Caching
 
@@ -66,13 +111,18 @@ This ensures that rapid edits (e.g., typing) do not trigger a cascade of pipelin
 
 1. Compute content hash
 2. Check `analysisCache` for a hit on `(uri, hash)` — if hit, return cached result
-3. On miss: call `analysis.Run(document.Text)` → store in `analysisCache` → return result
+3. If the document belongs to a `main.dsl` workspace, load workspace text with
+   open buffers substituted for disk contents, run `analysis.Run`, and cache the
+   source-file-specific result.
+4. If the document is standalone, call `analysis.Run(document.Text)` and cache
+   the result.
 
-**`navigationAnalysis(uri, current coreanalysis.Result) *docindex.Document`**
+**`navigationAnalysis(uri, current coreanalysis.Result) coreanalysis.Result`**
 
 1. If `current` has a valid model: store `current.Index` as the navigation fallback
 2. If not: retrieve the last-good fallback via `analysisCache.GetNavigationFallback(uri)`
-3. Return `current.Index.WithNavigationDataFromFallback(fallback)` — enables go-to-definition/rename while file has errors
+3. Return `current` with navigation data copied from the fallback — enables
+   go-to-definition/rename while the current file has errors
 
 ## Feature Handler Pattern
 
@@ -83,17 +133,21 @@ func (s *Server) textDocumentFeature(
     ctx *glsp.Context,
     params *protocol.FeatureParams,
 ) (any, error) {
-    result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
+    document, result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
     if !ok {
         return nil, nil
     }
 
-    index := s.navigationAnalysis(params.TextDocument.URI, result)
-    return resolveFeature(index, params.Position), nil
+    result = s.navigationAnalysis(document.URI, result)
+    return resolveFeature(result, params.Position), nil
 }
 ```
 
 `currentDocumentAnalysis` fetches the stored document and runs `analyzeDocument`. If the document is not open, it returns `ok = false` and the handler returns `nil` (no response).
+
+Workspace-backed handlers receive a result whose index includes source-file
+ranges. Navigation helpers convert locations back to the original file URI and
+line range.
 
 ## publishDiagnostics
 
@@ -107,6 +161,10 @@ func publishDiagnostics(
 ```
 
 Converts `result.Index.AllDiagnostics()` to `protocol.Diagnostic` slices and calls `notify` with `textDocument/publishDiagnostics`. Safe to call with a nil `notify` (used in tests).
+
+Workspace diagnostics are published through `publishWorkspaceDiagnostics`, which
+runs one workspace analysis and then filters diagnostics to each
+`docindex.SourceFile`. Closed files are published with no version field.
 
 ## How to Add a New LSP Feature
 
@@ -131,7 +189,7 @@ Converts `result.Index.AllDiagnostics()` to `protocol.Diagnostic` slices and cal
    capabilities.TextDocumentSync = ... // or whichever capability field
    ```
 
-4. Implement a resolver function (e.g., `resolveMyFeature(index *docindex.Document, position protocol.Position)`) in a new file in `internal/lsp/`.
+4. Implement a resolver function (e.g., `resolveMyFeature(result analysis.Result, position protocol.Position)`) in a new file in `internal/lsp/`.
 
 5. Use `occurrenceAtPosition(result, position)` to find the symbol under cursor, then `index.LookupDeclaration(kind, name)` or `index.ReferencesFor(kind, name)` for navigation data.
 

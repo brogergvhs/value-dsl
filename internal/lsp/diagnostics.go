@@ -9,11 +9,29 @@ import (
 	"github.com/brogergvhs/value-dsl/internal/sourcepos"
 	"github.com/brogergvhs/value-dsl/internal/validation"
 
+	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
 var parseLocationPattern = regexp.MustCompile(`:\s*([0-9]+):([0-9]+):`)
 var linePattern = regexp.MustCompile(`line ([0-9]+)`)
+
+// publishDiagnostics sends the textDocument/publishDiagnostics notification.
+func publishDiagnostics(notify glsp.NotifyFunc, uri protocol.DocumentUri, version int32, result coreanalysis.Result) {
+	if notify == nil {
+		return
+	}
+	var versionPtr *protocol.UInteger
+	if version >= 0 {
+		versionUint := protocol.UInteger(version)
+		versionPtr = &versionUint
+	}
+	notify(string(protocol.ServerTextDocumentPublishDiagnostics), protocol.PublishDiagnosticsParams{
+		URI:         uri,
+		Version:     versionPtr,
+		Diagnostics: diagnosticsFromResult(result),
+	})
+}
 
 func diagnosticsFromResult(result coreanalysis.Result) []protocol.Diagnostic {
 	if result.Index == nil {

@@ -7,8 +7,18 @@ import (
 	coreanalysis "github.com/brogergvhs/value-dsl/internal/analysis"
 	"github.com/brogergvhs/value-dsl/internal/grammar"
 
+	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
+
+// rename handles the textDocument/rename request.
+func (s *Server) rename(_ *glsp.Context, params *protocol.RenameParams) (*protocol.WorkspaceEdit, error) {
+	document, result, ok := s.currentDocumentAnalysis(params.TextDocument.URI)
+	if !ok {
+		return &protocol.WorkspaceEdit{}, nil
+	}
+	return resolveRename(params.TextDocument.URI, params.Position, params.NewName, s.navigationAnalysis(document.URI, result))
+}
 
 func resolveRename(uri protocol.DocumentUri, position protocol.Position, newName string, result coreanalysis.Result) (*protocol.WorkspaceEdit, error) {
 	if !grammar.Compiled.IsValidIdentifier(newName) {
