@@ -27,7 +27,7 @@ dsl format -                  # read from stdin, write to stdout
 | Spacing around `,`                       | `user, admin` (space after comma)                                                  |
 | Spacing between keyword and body         | single space                                                                       |
 | Numbers                                  | trailing `0` removed (`1.800` -> `1.8`), `0` before decimals added (`.8` -> `0.8`) |
-| Multi-word strings                       | enclosed in single quotes                                                          |
+| Multi-word strings                       | enclosed in single quotes, or double quotes when the value contains an apostrophe  |
 | Blank lines between declaration kinds    | exactly one blank line between blocks (`requirement` and `assignment`)             |
 | Dense groups                             | no blank line between consecutive declarations (`stakeholder` or `value`)          |
 

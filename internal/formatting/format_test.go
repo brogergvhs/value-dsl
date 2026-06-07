@@ -86,10 +86,15 @@ func TestFormatNormalizesStringQuotes(t *testing.T) {
 	input := `stakeholder Worker
 requirement R1
 system shall notify Worker using "camera feed"
+system shall notify Worker using "additional braking beyond the dirver's input"
 stakeholders Worker
 retention "30 days"
 linked_to 'Safety Case'
 linked_to "google.com/search?q=lsp"
+requirement R2
+if System "the only objects close to a crosswalk are cyclists driving parallel to the System's direction of travel"
+system shall notify Worker
+stakeholders Worker
 `
 
 	formatted, err := Format(input)
@@ -101,10 +106,16 @@ linked_to "google.com/search?q=lsp"
 
 requirement R1
 system shall notify Worker using 'camera feed'
+system shall notify Worker using "additional braking beyond the dirver's input"
 stakeholders Worker
 retention '30 days'
 linked_to 'Safety Case'
 linked_to 'google.com/search?q=lsp'
+
+requirement R2
+if System "the only objects close to a crosswalk are cyclists driving parallel to the System's direction of travel"
+system shall notify Worker
+stakeholders Worker
 `
 
 	if formatted != expected {
