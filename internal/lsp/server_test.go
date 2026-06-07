@@ -62,6 +62,10 @@ func TestInitializeAdvertisesFullTextSync(t *testing.T) {
 	if !ok || !renameProvider {
 		t.Fatalf("expected rename support, got %+v", result.Capabilities.RenameProvider)
 	}
+	codeActionProvider, ok := result.Capabilities.CodeActionProvider.(protocol.CodeActionOptions)
+	if !ok || len(codeActionProvider.CodeActionKinds) != 1 || codeActionProvider.CodeActionKinds[0] != protocol.CodeActionKindQuickFix {
+		t.Fatalf("expected quick-fix code action support, got %+v", result.Capabilities.CodeActionProvider)
+	}
 	documentSymbolProvider, ok := result.Capabilities.DocumentSymbolProvider.(bool)
 	if !ok || !documentSymbolProvider {
 		t.Fatalf("expected document symbol support, got %+v", result.Capabilities.DocumentSymbolProvider)

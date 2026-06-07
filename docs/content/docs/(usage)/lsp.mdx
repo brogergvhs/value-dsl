@@ -54,6 +54,7 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 | `textDocument/definition`          | Go to definition          | Workspace-aware declaration lookup                                               |
 | `textDocument/references`          | Find references           | Workspace-aware references                                                       |
 | `textDocument/rename`              | Rename                    | Produces workspace edits after validation                                        |
+| `textDocument/codeAction`          | Code actions              | Quick fixes for common workspace validation issues                               |
 | `textDocument/documentLink`        | Document links            | Links URL-like `linked_to` targets                                               |
 | `textDocument/documentHighlight`   | Document highlight        | Highlights declaration and references                                            |
 | `textDocument/documentSymbol`      | Document symbols          | Outline data for declarations and children                                       |
@@ -76,7 +77,6 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 | `textDocument/signatureHelp`             | Signature help           | Not applicable to current DSL model                 |
 | `textDocument/typeDefinition`            | Go to type definition    | Not applicable to current DSL model                 |
 | `textDocument/implementation`            | Go to implementation     | Not applicable to current DSL model                 |
-| `textDocument/codeAction`                | Code actions             | Not implemented                                     |
 | `textDocument/codeLens`                  | Code lens                | Fairly useless currently                            |
 | `textDocument/onTypeFormatting`          | Format while typing      | Think its annoying                                  |
 | `textDocument/linkedEditingRange`        | Linked editing           | Downgrade over rename, so considered pointless      |
@@ -154,6 +154,23 @@ Rename validates:
 - New name must not conflict with an existing declaration
 
 Validation errors are reported to the editor as a user-visible message.
+
+### Code Actions
+
+`textDocument/codeAction` — returns quick fixes as workspace edits. Code actions
+use the same workspace analysis as diagnostics, so edits can target closed
+sibling `.dsl` files when the current file belongs to a `main.dsl` workspace.
+
+| Code action                                            | Edit                                                                                  |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| Add missing stakeholders                               | Inserts missing `stakeholder <name>` declarations after the existing stakeholder list |
+| Remove duplicate builtin value `<name>`                | Deletes a custom value declaration that has the same name as a built-in value         |
+| Replace duplicate value `<name>` with builtin `<name>` | Deletes a custom value with built-in geometry and rewrites its references             |
+| Add assignment block for current requirement           | Inserts or completes the assignment block for the requirement under the cursor        |
+| Add missing assignment blocks                          | Inserts or completes assignment blocks for all requirements in the workspace          |
+
+Generated assignment entries are prefilled as `<stakeholder> -> ` and leave the
+value side empty.
 
 ### Document Symbols
 

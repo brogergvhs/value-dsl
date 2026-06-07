@@ -24,6 +24,7 @@ func (s *Server) initialize(_ *glsp.Context, params *protocol.InitializeParams) 
 	capabilities.DefinitionProvider = true
 	capabilities.ReferencesProvider = true
 	capabilities.RenameProvider = true
+	capabilities.CodeActionProvider = protocol.CodeActionOptions{CodeActionKinds: []protocol.CodeActionKind{protocol.CodeActionKindQuickFix}}
 	capabilities.DocumentSymbolProvider = true
 	capabilities.DocumentHighlightProvider = true
 	capabilities.FoldingRangeProvider = true

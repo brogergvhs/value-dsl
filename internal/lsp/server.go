@@ -73,6 +73,7 @@ func (s *Server) newHandler() protocol.Handler {
 		TextDocumentDefinition:         s.definition,
 		TextDocumentReferences:         s.references,
 		TextDocumentRename:             s.rename,
+		TextDocumentCodeAction:         s.codeAction,
 		TextDocumentDocumentSymbol:     s.documentSymbol,
 		TextDocumentDocumentLink:       s.documentLink,
 		TextDocumentDocumentHighlight:  s.documentHighlight,
