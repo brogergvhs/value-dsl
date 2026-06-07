@@ -37,31 +37,32 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 
 ## Capabilities
 
-| LSP method or capability           | Feature                   | Notes                                      |
-| ---------------------------------- | ------------------------- | ------------------------------------------ |
-| `initialize`                       | Server capabilities       | Advertises the implemented providers       |
-| `initialized`                      | Initialization complete   | Accepted as a no-op                        |
-| `shutdown`                         | Server shutdown           | Cancels scheduled analysis                 |
-| `exit`                             | Process exit notification | Accepted as a no-op                        |
-| `workspace/symbol`                 | Workspace symbols         | Searches declarations in open workspaces   |
-| `textDocument/didOpen`             | Open document sync        | Runs analysis and publishes diagnostics    |
-| `textDocument/didChange`           | Change document sync      | Full-document sync with debounced analysis |
-| `textDocument/didClose`            | Close document sync       | Clears document state and diagnostics      |
-| `textDocument/completion`          | Completion                | Context-aware keywords and symbols         |
-| `textDocument/hover`               | Hover                     | Symbol and clause documentation            |
-| `textDocument/declaration`         | Go to declaration         | Reuses definition for DSL declarations     |
-| `textDocument/definition`          | Go to definition          | Workspace-aware declaration lookup         |
-| `textDocument/references`          | Find references           | Workspace-aware references                 |
-| `textDocument/rename`              | Rename                    | Produces workspace edits after validation  |
-| `textDocument/documentLink`        | Document links            | Links URL-like `linked_to` targets         |
-| `textDocument/documentHighlight`   | Document highlight        | Highlights declaration and references      |
-| `textDocument/documentSymbol`      | Document symbols          | Outline data for declarations and children |
-| `textDocument/foldingRange`        | Folding ranges            | Folds declaration groups and blocks        |
-| `textDocument/selectionRange`      | Selection ranges          | Expands token selections to fold blocks    |
-| `textDocument/formatting`          | Format document           | Uses the DSL formatter                     |
-| `textDocument/rangeFormatting`     | Format selection          | Formats selected source lines              |
-| `textDocument/semanticTokens/full` | Semantic tokens           | Full semantic token response               |
-| `textDocument/publishDiagnostics`  | Diagnostics               | Server-pushed diagnostics notification     |
+| LSP method or capability           | Feature                   | Notes                                                                            |
+| ---------------------------------- | ------------------------- | -------------------------------------------------------------------------------- |
+| `initialize`                       | Server capabilities       | Advertises the implemented providers                                             |
+| `initialized`                      | Initialization complete   | Accepted as a no-op                                                              |
+| `shutdown`                         | Server shutdown           | Cancels scheduled analysis                                                       |
+| `exit`                             | Process exit notification | Accepted as a no-op                                                              |
+| `workspace/symbol`                 | Workspace symbols         | Searches declarations in open workspaces                                         |
+| `workspace/didChangeWatchedFiles`  | Watched file changes      | Re-analyzes `.dsl` workspaces when clients send file create/change/delete events |
+| `textDocument/didOpen`             | Open document sync        | Runs analysis and publishes diagnostics                                          |
+| `textDocument/didChange`           | Change document sync      | Full-document sync with debounced analysis                                       |
+| `textDocument/didClose`            | Close document sync       | Clears document state and diagnostics                                            |
+| `textDocument/completion`          | Completion                | Context-aware keywords and symbols                                               |
+| `textDocument/hover`               | Hover                     | Symbol and clause documentation                                                  |
+| `textDocument/declaration`         | Go to declaration         | Reuses definition for DSL declarations                                           |
+| `textDocument/definition`          | Go to definition          | Workspace-aware declaration lookup                                               |
+| `textDocument/references`          | Find references           | Workspace-aware references                                                       |
+| `textDocument/rename`              | Rename                    | Produces workspace edits after validation                                        |
+| `textDocument/documentLink`        | Document links            | Links URL-like `linked_to` targets                                               |
+| `textDocument/documentHighlight`   | Document highlight        | Highlights declaration and references                                            |
+| `textDocument/documentSymbol`      | Document symbols          | Outline data for declarations and children                                       |
+| `textDocument/foldingRange`        | Folding ranges            | Folds declaration groups and blocks                                              |
+| `textDocument/selectionRange`      | Selection ranges          | Expands token selections to fold blocks                                          |
+| `textDocument/formatting`          | Format document           | Uses the DSL formatter                                                           |
+| `textDocument/rangeFormatting`     | Format selection          | Formats selected source lines                                                    |
+| `textDocument/semanticTokens/full` | Semantic tokens           | Full semantic token response                                                     |
+| `textDocument/publishDiagnostics`  | Diagnostics               | Server-pushed diagnostics notification                                           |
 
 <details>
 <summary>Not implemented LSP capabilities</summary>
@@ -85,7 +86,6 @@ See [Workspaces](/docs/workspace) for the exact loading rules.
 | `textDocument/semanticTokens/full/delta` | Delta semantic tokens    | Only full semantic tokens are implemented           |
 | `workspace/executeCommand`               | Server commands          | Dont think is needed currently                      |
 | `workspace/didChangeConfiguration`       | Config changes           | Fairly useless in current state of LSP config       |
-| `workspace/didChangeWatchedFiles`        | Watched file changes     | Not implemented                                     |
 | `workspace/workspaceFolders`             | Workspace folder changes | Workspace loading already handled by dsl            |
 | `callHierarchy/*`                        | Call hierarchy           | Not applicable to current DSL model                 |
 | `typeHierarchy/*`                        | Type hierarchy           | Not applicable to current DSL model                 |
@@ -207,7 +207,21 @@ fragment and returns an edit limited to those lines.
 
 ### Diagnostics
 
-Published automatically on every file change, debounced by 200 ms. The server sends `textDocument/publishDiagnostics` after each analysis run. Diagnostics map directly to the [validation codes](/docs/validation).
+Published automatically on open and after document changes, debounced by the
+LSP debounce setting. The server sends `textDocument/publishDiagnostics` after
+each analysis run. Diagnostics map directly to the
+[validation codes](/docs/validation).
+
+For workspaces, diagnostics are published per source file. Open buffers are
+used instead of their on-disk contents, and closed sibling files still receive
+diagnostics when workspace analysis runs.
+
+The server also handles `workspace/didChangeWatchedFiles` for `.dsl` files.
+When the client sends file create/change/delete events, the server invalidates
+closed-file cache entries, clears diagnostics for deleted files, and schedules
+workspace analysis. VS Code sends these events through the repository extension.
+Other editors only get closed-file updates for external file changes if their
+LSP client sends `workspace/didChangeWatchedFiles`.
 
 ### Semantic Tokens
 
