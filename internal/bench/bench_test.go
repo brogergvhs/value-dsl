@@ -376,7 +376,7 @@ func BenchmarkConflictScore(b *testing.B) {
 }
 
 func BenchmarkAnalysisPipeline(b *testing.B) {
-	for _, n := range []int{10, 100, 1000} {
+	for _, n := range []int{10, 100, 1000, 10000} {
 		text := generateDSL(n)
 		b.Run(fmt.Sprintf("reqs=%d", n), func(b *testing.B) {
 			b.ReportAllocs()

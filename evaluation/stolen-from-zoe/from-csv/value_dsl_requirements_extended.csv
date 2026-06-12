@@ -1,0 +1,461 @@
+ID;Set;Human Monitoring Requirement;dsl_code;definability;issues;notes
+114;qure;The central activation device uses the crash acceleration and pressure forces measured by appropriate sensors and the resulting values to determine whether the threshold value for firing the seat belt tightener and / or the airbag firing squibs or for activation of the crash switches has been reached (see the `` Technical Specifications for Algorithms '').;"requirement REQ_001_ID_X_114
+  system shall measure threshold_status of central_activation_device
+  stakeholders central_activation_device, appropriate_sensors, threshold_calculator
+  linked_to ""114""";partially;Unsupported analysis/capability verb was approximated with the nearest supported monitoring verb.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+159;qure;Appropriate firing thresholds are calculated on the basis of the crash measurement signals under consideration of all parameters (belt buckle status, equipment programming, etc.).;"requirement REQ_002_ID_X_159
+  system shall measure belt_buckle_status of crash_measurement_unit
+  stakeholders crash_measurement_unit, threshold_calculator
+  linked_to ""159""";partially;Unsupported analysis/capability verb was approximated with the nearest supported monitoring verb.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+172;qure;To distinguish between normal engine running and bad driver actions, the software has to use the current gear and clutch information on manual transmission cars to detect if the driver has occured an engine stalling.;"requirement REQ_003_ID_X_172
+  where manual_transmission_car
+  system shall inform driver
+  stakeholders software, driver, vehicle, engine_controller
+  linked_to ""172""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+226;qure;For validation of certain component functions a function specific data base may be necessary, e.g. tunnels and bridges, pedestrians, oncoming or crossing objects, situations with high yaw dynamic, lane radius verification, etc.;;no;Statement is a process/background/inventory requirement rather than a stakeholder-centered requirement definition supported by Value-DSL.;Kept as comment only in the DSL file.
+227;qure;The detection shall be done in a certain way and filter for error detection shall be used.;"requirement REQ_005_ID_X_227
+  system shall detect detection_done_in_certain of application_system
+  stakeholders application_system
+  linked_to ""227""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+284;qure;The system provides the ability to start an Active Comfort program (`` Program Recommendation '') when the attention assist issues a certain level or a drowsiness warning.;"requirement REQ_006_ID_X_284
+  when attention_assist reports drowsiness_warning
+  system shall warn om_system
+  stakeholders attention_assist, om_system
+  linked_to ""284""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+287;qure;By viewing the area behind the vehicle closely and without constraints on a display the driver shall be able to park in more easily.;"requirement REQ_007_ID_X_287
+  system shall inform driver using display
+  stakeholders driver, vehicle
+  linked_to ""287""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+288;qure;Therefore the system will provide a view that shows these dangered parts closely.;"requirement REQ_008_ID_X_288
+  system shall inform application_system using display
+  stakeholders application_system
+  linked_to ""288""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+378;qure;The IDC shall provide objects reliable if they are closer than 100 m to ensure a synchronisation to the ADAS graphic in the IC.;"requirement REQ_009_ID_X_378
+  where condition_from_source_9
+  system shall inform idc
+  stakeholders idc
+  linked_to ""378""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited. Quantitative/timing/capacity constraints are not first-class in Value-DSL and were preserved only implicitly.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+380;qure;close passing of real PD for validation of motion (e.g. motion of arms or legs, etc.);;no;Statement is a process/background/inventory requirement rather than a stakeholder-centered requirement definition supported by Value-DSL.;Kept as comment only in the DSL file.
+462;qure;To monitor the temperature of the vehicle inlet close to the DC pins, a second temperature sensor (type PT1000) is integrated into the vehicle inlet.;"requirement REQ_011_ID_X_462
+  system shall monitor temperature of appropriate_sensors
+  stakeholders appropriate_sensors, vehicle_inlet, second_temperature_sensor, vehicle
+  linked_to ""462""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+469;qure;A pedestrian shall be considered close to the crosswalk when his projected movement will bring him into the pedestrian warning area (TSA5_Func-319) at the time of the EV reaching the crosswalk.;"requirement REQ_012_ID_X_469
+  where condition_from_source_12
+  system shall warn pedestrian
+  stakeholders pedestrian
+  linked_to ""469""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+497;qure;The system shall not issue crosswalk warnings if the only objects close to the crosswalk are cyclists driving parallel to the vehicle's direction of travel.;"requirement REQ_013_ID_X_497
+  where condition_from_source_13
+  system shall limit crosswalk_warnings of cyclist
+  stakeholders cyclist, vehicle, trip
+  linked_to ""497""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+498;qure;The vehicle function crosswalk alert is intented to warn the driver when he is approaching a crosswalk and a pedestrian is detected close to the crosswalk.;"requirement REQ_014_ID_X_498
+  where condition_from_source_14
+  system shall warn driver
+  stakeholders driver, pedestrian, vehicle
+  linked_to ""498""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+499;qure;Therefore the system provides a close view on the area in front of the car.;"requirement REQ_015_ID_X_499
+  system shall inform vehicle using display
+  stakeholders vehicle
+  linked_to ""499""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+500;qure;The ultrasonic sensors support the Object Detection (OD) of the SVS and allows to display discrete distance information of close objects.;"requirement REQ_016_ID_X_500
+  system shall inform ultrasonic_sensors using display
+  stakeholders appropriate_sensors, ultrasonic_sensors
+  linked_to ""500""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+501;qure;The Top View Front Zoom assists the driver to maneuver the vehicle close to obstacles in front of the vehicle.;"requirement REQ_017_ID_X_501
+  system shall inform driver using display
+  stakeholders driver, vehicle, om_system
+  linked_to ""501""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+892;qure;The probability threshold for an azimuthal side lobe detection may be higher than for the determination of the signal DTR_Obj_X_LongFusion_Qual / DTR_Obj_X_LongFunc_Qual to enable a pedestrian detection in connection with camera fusion at an early stage.;"requirement REQ_018_ID_X_892
+  system shall detect threshold_status of threshold_calculator
+  stakeholders threshold_calculator, pedestrian, camera_fusion
+  linked_to ""892""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+915;qure;The signal has to signalize (signal state 0 equal NACPT) that an object does not fulfill the requirements for a pedestrian (incl. pedestrian dummies, pedestrians with sports equipment or other equipment) independently of their moving state (moving, stationary) for a fast functional reaction exclusively after a fusion with a camera, i.;;no;No supported Value-DSL requirement action could be identified without inventing semantics.;Kept as comment only.
+922;qure;The standard Brake-Assistant is a system which brakes more than the driver, if the driver touches the brake pedal fast but not deep enough.;;no;No supported Value-DSL requirement action could be identified without inventing semantics.;Kept as comment only.
+1050;qure;The long range radar shall support the function by the detection of PD ahead of the system vehicle and by providing necessary information like position (x, y), velocity (vx, vy) and quality measures.;"requirement REQ_021_ID_X_1050
+  system shall inform long_range_radar
+  stakeholders vehicle, long_range_radar
+  linked_to ""1050""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+1178;qure;As long as the belt buckle status cannot be recorded, the message `` Signal Not Available '' is present on the CAN.;"requirement REQ_022_ID_X_1178
+  system shall inform can_bus
+  stakeholders can_bus
+  linked_to ""1178""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+1430;qure;The component detects several new unfiltered raw targets in every system cycle.;"requirement REQ_023_ID_X_1430
+  system shall detect targets of component
+  stakeholders component, om_system
+  linked_to ""1430""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+1431;qure;The component has to detect and calculate several additional objects on side tracks and in front of the preceding vehicle.;"requirement REQ_024_ID_X_1431
+  system shall track objects of vehicle
+  stakeholders vehicle, component, om_system
+  linked_to ""1431""";partially;Unsupported analysis/capability verb was approximated with the nearest supported monitoring verb. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+1876;qure;Information: If the engine is in the state `` automatic stop '' and the absence of the driver is detected, then a level 1 restart must be requested as soon as possible.;"requirement REQ_025_ID_X_1876
+  if engine_controller engine_condition_requires_action
+  system shall inform driver
+  stakeholders driver, engine_controller, om_system
+  linked_to ""1876""";partially;Quantitative/timing/capacity constraints are not first-class in Value-DSL and were preserved only implicitly.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.0.5;1999 - tcs.txt;The operational capabilities to be performed by the system will be determined by task analysis in accordance with MIL STD 1388 Task 401 as a guide based on a thorough understanding of Outrider and Predator mission requirements. Tasks will be evaluated and allocated based on operator skills and proficiencies. The initial TCS task analysis will produce a system baseline which will be optimized by engineering analysis and operator evaluations.;;no;Statement is a process/background/inventory requirement rather than a stakeholder-centered requirement definition supported by Value-DSL.;Kept as comment only in the DSL file.
+G.D9.3.1.1.0.8;1999 - tcs.txt;The TCS shall inform the operator if the operator attempts to execute a function prohibited as a result of the determined level of interaction.;"requirement REQ_027_ID_G_D9_3_1_1_0_8
+  where condition_from_source_27
+  system shall inform operator
+  stakeholders tcs, operator
+  linked_to ""G.D9.3.1.1.0.8""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.1.1.2.0.3;1999 - tcs.txt;The TCS shall be capable of automatically recording system state data, interface communications and other information necessary to support event reconstruction.;"requirement REQ_028_ID_G_D9_3_1_1_2_0_3
+  system shall inform om_system
+  stakeholders tcs, om_system
+  linked_to ""G.D9.3.1.1.2.0.3""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.2.1.1.0.5;1999 - tcs.txt;The TCS flight route planner shall include, as a minimum, the following flight planning tools: 1. Weight and balance take off data calculations. 2. Fuel Calculations. 3. Terrain avoidance warning for line of sight flights. 4. Minimum data link reception altitude calculations for line of sight flights. 5. Payload search area information such as: visual acuity range due to atmospheric conditions, diurnal transition periods for thermal imagery, and lunar and solar terrain shadowing. 6. Ability to designate flight corridors and restricted air space.;;no;"Compound feature inventory with many sub-capabilities; no single valid Value-DSL stakeholder/action definition without splitting and inventing semantics.";Kept as comment only.
+G.D9.3.2.1.1.1.0.2;1999 - tcs.txt;A de-clutter capability shall be provided that allows the operator to display only a selected number of the most significant threats.;"requirement REQ_030_ID_G_D9_3_2_1_1_1_0_2
+  system shall inform operator using display
+  stakeholders can_bus, tcs, operator
+  linked_to ""G.D9.3.2.1.1.1.0.2""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.2.2.1.5.0.1;1999 - tcs.txt;TCS shall provide the capability to monitor specific telemetry elements real-time, and record all telemetry elements for future review and processing.;"requirement REQ_031_ID_G_D9_3_2_2_1_5_0_1
+  system shall inform telemetry_system using display
+  stakeholders tcs, telemetry_system
+  linked_to ""G.D9.3.2.2.1.5.0.1""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited. Quantitative/timing/capacity constraints are not first-class in Value-DSL and were preserved only implicitly. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.2.2.2.2.1.1;1999 - tcs.txt;The TCS shall display the current search footprint and the search history of the payload on the map.;"requirement REQ_032_ID_G_D9_3_2_2_2_2_1_1
+  system shall inform payload using display
+  stakeholders tcs, payload
+  linked_to ""G.D9.3.2.2.2.2.1.1""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.2.2.3.0.2;1999 - tcs.txt;The TCS shall provide the system functionality necessary to record data obtained via the data link.;"requirement REQ_033_ID_G_D9_3_2_2_3_0_2
+  system shall record tcs_functionality_necessary_record of tcs
+  stakeholders tcs, data_link
+  linked_to ""G.D9.3.2.2.3.0.2""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.2.2.3.1.0.4;1999 - tcs.txt;As a minimum the TCS LOS data terminal control modes shall include acquisition, autotrack, search, manual point, omni directional, as well as directional modes of operation, if applicable to the selected data link.;;no;Statement is a process/background/inventory requirement rather than a stakeholder-centered requirement definition supported by Value-DSL.;Kept as comment only in the DSL file.
+G.D9.3.2.3.1.1;1999 - tcs.txt;"The TCS shall have the functionality to process payload product data from Electro Optical (EO), Infrared (IR), and Synthetic Aperture Radar (SAR) payloads. This functionality, as a minimum, shall include:  formatting, storing, internally routing, and recording the video; creating and storing a freeze frame of the video; retrieving and displaying the video; printing a hard copy of freeze frame video; and processing digital imagery for export and dissemination. Payload data includes the digital and analog imagery and associated telemetry sent to the TCS from each of these payloads.";"requirement REQ_035_ID_G_D9_3_2_3_1_1
+  system shall inform om_system using display
+  stakeholders long_range_radar, tcs, payload, telemetry_system, om_system
+  linked_to ""G.D9.3.2.3.1.1""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited. Quantitative/timing/capacity constraints are not first-class in Value-DSL and were preserved only implicitly. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.2.3.1.2;1999 - tcs.txt;The TCS shall be able to store up to 24 hours of payload data. External storage can be utilized for this purpose.;"requirement REQ_036_ID_G_D9_3_2_3_1_2
+  system shall store tcs_able_store_up of can_bus
+  stakeholders can_bus, tcs, payload
+  linked_to ""G.D9.3.2.3.1.2""";partially;Quantitative/timing/capacity constraints are not first-class in Value-DSL and were preserved only implicitly.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.2.3.2.1;1999 - tcs.txt;The TCS shall display live and recorded imagery data, with as well as without annotation and overlay, upon operator request. Annotation includes operator generated comments as well as graphics which are superimposed on the imagery. Overlays consist of information obtained from external sources that is selected by the operator for presentation with the imagery.;"requirement REQ_037_ID_G_D9_3_2_3_2_1
+  system shall inform operator using display
+  stakeholders tcs, operator, om_system
+  linked_to ""G.D9.3.2.3.2.1""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.2.3.2.5;1999 - tcs.txt;RS170A video and digital imagery shall be routed to TCS functions and displayed upon operator request.;"requirement REQ_038_ID_G_D9_3_2_3_2_5
+  system shall inform operator using display
+  stakeholders tcs, operator
+  linked_to ""G.D9.3.2.3.2.5""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.2.3.3.2;1999 - tcs.txt;The TCS shall provide the capability to capture frozen-frames of imagery and store these frozen images for further review and processing.;"requirement REQ_039_ID_G_D9_3_2_3_3_2
+  system shall inform tcs using display
+  stakeholders tcs
+  linked_to ""G.D9.3.2.3.3.2""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.2.3.3.3;1999 - tcs.txt;The TCS shall have the capability to display Near-Real Time (NRT) imagery  to include, as a minimum, date/time group, target location coordinates when the target is in the center of the field of view, north seeking arrow, and AV position and heading.;"requirement REQ_040_ID_G_D9_3_2_3_3_3
+  where condition_from_source_40
+  system shall inform location using display
+  stakeholders vehicle, tcs, location
+  linked_to ""G.D9.3.2.3.3.3""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited. Quantitative/timing/capacity constraints are not first-class in Value-DSL and were preserved only implicitly. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.2.4.0.2;1999 - tcs.txt;The TCS shall support a target location function where the operator can request the current ground location of the payload field-of-view center.;"requirement REQ_041_ID_G_D9_3_2_4_0_2
+  system shall inform operator using display
+  stakeholders can_bus, tcs, operator, payload, location
+  linked_to ""G.D9.3.2.4.0.2""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.2.4.1.1;1999 - tcs.txt;The TCS shall have the functionality to determine the location of items of interest within the payload field of view, and express these locations in coordinates acceptable for military applications.;"requirement REQ_042_ID_G_D9_3_2_4_1_1
+  system shall inform location using display
+  stakeholders tcs, payload, location
+  linked_to ""G.D9.3.2.4.1.1""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.10.1.0.1;1999 - tcs.txt;"The TCS hardware will provide the functionality and capability to receive, process, and disseminate video and telemetry data from the AV and payload; perform mission planning; monitor and control the payload; monitor and control the AV;  and monitor and control the data links.";"requirement REQ_043_ID_G_D9_3_10_1_0_1
+  system shall capture telemetry_elements of vehicle
+  stakeholders vehicle, tcs, payload, data_link, telemetry_system, om_system
+  linked_to ""G.D9.3.10.1.0.1""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.10.3.0.1;1999 - tcs.txt;"The TCS software will provide the functionality and capability to receive, process, and disseminate video and telemetry data from the AV and payload; perform mission planning; monitor and control the payload; monitor and control the AV; and monitor and control the data links.";"requirement REQ_044_ID_G_D9_3_10_3_0_1
+  system shall capture telemetry_elements of software
+  stakeholders software, vehicle, tcs, payload, data_link, telemetry_system, om_system
+  linked_to ""G.D9.3.10.3.0.1""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.13.1.9;1999 - tcs.txt;A combination of visual and auditory outputs will be provided to alert the TCS operator to situations which may require operator response.;"requirement REQ_045_ID_G_D9_3_13_1_9
+  system shall warn operator
+  stakeholders tcs, operator, om_system
+  linked_to ""G.D9.3.13.1.9""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.13.1.12;1999 - tcs.txt;All TCS warning messages and HCI actions shall be archived for later review.;"requirement REQ_046_ID_G_D9_3_13_1_12
+  system shall warn hci using display
+  stakeholders tcs, hci
+  linked_to ""G.D9.3.13.1.12""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+G.D9.3.13.1.13;1999 - tcs.txt;All TCS operator inputs shall be error checked such that any erroneous operator entry will not cause current processing to terminate. The HCI shall prompt the operator for a valid input.;"requirement REQ_047_ID_G_D9_3_13_1_13
+  system shall inform operator
+  stakeholders tcs, operator, hci, om_system
+  linked_to ""G.D9.3.13.1.13""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+G.D9.3.13.1.15;1999 - tcs.txt;The operational tasks to be performed concurrently by the operator during normal operation will be determined by appropriate task analysis and function allocation.;;no;Statement is a process/background/inventory requirement rather than a stakeholder-centered requirement definition supported by Value-DSL.;Kept as comment only in the DSL file.
+G.D9.3.13.1.29;1999 - tcs.txt;The TCS shall provide the necessary processing, display, and control capabilities to ensure dynamic situational awareness input to the TCS operator.;"requirement REQ_049_ID_G_D9_3_13_1_29
+  system shall inform operator using display
+  stakeholders tcs, operator
+  linked_to ""G.D9.3.13.1.29""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.14.9;1999 - tcs.txt;Training shall be adequate to maintain operator and maintainer skills and proficiencies.;;no;Statement is a process/background/inventory requirement rather than a stakeholder-centered requirement definition supported by Value-DSL.;Kept as comment only in the DSL file.
+G.D9.3.14.10;1999 - tcs.txt;TCS shall record operator and maintainer actions for self-assessment and performance enhancement.;"requirement REQ_051_ID_G_D9_3_14_10
+  system shall record operator_maintainer_actions of tcs
+  stakeholders tcs, operator, maintainer
+  linked_to ""G.D9.3.14.10""";partially;Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D9.3.14.11;1999 - tcs.txt;Operator and maintainer performance shall be measurable using parameters retrievable from the TCS to determine proficiency levels.;"requirement REQ_052_ID_G_D9_3_14_11
+  system shall detect performance_parameters of tcs
+  stakeholders tcs, operator, maintainer, om_system
+  linked_to ""G.D9.3.14.11""";partially;Unsupported analysis/capability verb was approximated with the nearest supported monitoring verb.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D32.6.31;2005 - nenios.txt;A Daily Classroom & Center Enrollment Report shall alphabetically list the names of children by classroom and indicate if they are present or absent.;"requirement REQ_053_ID_G_D32_6_31
+  where condition_from_source_53
+  system shall inform om_system
+  stakeholders classroom_manager, om_system
+  linked_to ""G.D32.6.31""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.0.2;2005 - phin.txt;System s supporting OM need a variety of data to support investigations, including data regarding demographics, cases, exposures, investigations, agents, contacts, specimen/sample collection, laboratory tests, travel and conveyance, and restriction monitoring.;"requirement REQ_054_ID_G_D33_2_0_2
+  system shall collect demographic_data of om_system
+  stakeholders om_system, person, trip, conveyance, sample
+  linked_to ""G.D33.2.0.2""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.0.3;2005 - phin.txt;Systems supporting OM should support case investigation, maintain detailed and com prehensive linkages, trace contacts, and quarantine and isolation monitoring activities.;"requirement REQ_055_ID_G_D33_2_0_3
+  system shall monitor systems_supporting_om_case of om_system
+  stakeholders om_system
+  linked_to ""G.D33.2.0.3""";partially;Unsupported analysis/capability verb was approximated with the nearest supported monitoring verb. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.1.1;2005 - phin.txt;Systems supporting OM must have the capability to capture demographic data about persons involved in an OM investigation, including:  Subject ID, name, address, date of birth, gender, phone number, race, ethnicity, and country of citizenship.;"requirement REQ_056_ID_G_D33_2_2_1_1
+  system shall capture demographic_data of om_system
+  stakeholders om_system, person
+  linked_to ""G.D33.2.2.1.1""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.1.2;2005 - phin.txt;Systems supporting OM must have the capability to capture data about organizations (e.g., a local health department, a university, a professional association) involved in an OM investigation, including: organization name, location, and contact information.;"requirement REQ_057_ID_G_D33_2_2_1_2
+  system shall inform location
+  stakeholders om_system, organization, location
+  linked_to ""G.D33.2.2.1.2""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.1.3;2005 - phin.txt;Systems supporting OM must have the capability to capture data about locations involved in an OM investigation, including:  name (if applicable), type (e.g., floor, building, room , store), street address, city, state, zip code, country, GPS coordinates, and other specific details (e.g., a specific building on a campus, a business branch location, a local chapter’s meeting hall);"requirement REQ_058_ID_G_D33_2_2_1_3
+  system shall store location_data of om_system
+  stakeholders om_system, location
+  linked_to ""G.D33.2.2.1.3""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.1.7;2005 - phin.txt;Systems supporting OM must have the capability to capture data about any public or private gathering of people (e.g., church social, ball gam e) involved in an OM investigation, including:  time, location, nature of the event, etc.;"requirement REQ_059_ID_G_D33_2_2_1_7
+  system shall capture location_data of om_system
+  stakeholders om_system, location, public_gathering
+  linked_to ""G.D33.2.2.1.7""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.1.9;2005 - phin.txt;Systems supporting OM must have the capability to capture an entity’s travel history to support investigations of entities infected, exposed or potentially exposed.;"requirement REQ_060_ID_G_D33_2_2_1_9
+  system shall capture travel_history of om_system
+  stakeholders om_system, trip
+  linked_to ""G.D33.2.2.1.9""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.3.1.1;2005 - phin.txt;Information about each leg of a trip, as well as the parent information about the trip, should be captured.  For example, if a person who lives in Georgia travels to Seattle and becomes exposed to monkey pox, then visits a friend in Santa Fe, travel history and conveyance data should be noted accordingly for each place the exposed person traveled.;"requirement REQ_061_ID_G_D33_2_2_3_1_1
+  where condition_from_source_61
+  system shall inform conveyance
+  stakeholders om_system, person, trip, conveyance
+  linked_to ""G.D33.2.2.3.1.1""";partially;Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.3.3;2005 - phin.txt;Detailed conveyance data must be collected when relevant to the investigation, including the carrier identifier,  the type of conveyance (such as airplane, bus, or train, among countless others), as well as the make, model, year, and identification number (e.g., VIN) of each vehicle with which the entity was in  contact (if this information is relevant to the investigation).;"requirement REQ_062_ID_G_D33_2_2_3_3
+  where condition_from_source_62
+  system shall inform conveyance
+  stakeholders vehicle, om_system, conveyance
+  linked_to ""G.D33.2.2.3.3""";partially;Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.4.0;2005 - phin.txt;Case Investigation and Exposure Contact Data Case and exposure data provide more detailed information beyond demographic data. Cases can be persons or animals, and exposure contacts can be persons, animals, other organisms, or exposure settings , such as travel conveyance, location, organization, object, or event.;;no;Statement is a process/background/inventory requirement rather than a stakeholder-centered requirement definition supported by Value-DSL.;Kept as comment only in the DSL file.
+G.D33.2.2.4.2.3;2005 - phin.txt;Epidemiological (epi) data must be collected  to assist in the case investigation of events.  Standard epi data to be collected includes: onset date and time of symptoms, type of symptoms, risk factors, medical history data, laboratory data, procedure data, and questionnaire responses.;"requirement REQ_064_ID_G_D33_2_2_4_2_3
+  system shall log epi_data of om_system
+  stakeholders om_system
+  linked_to ""G.D33.2.2.4.2.3""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.4.2.5;2005 - phin.txt;In the context of a case, all entities exposed to a case must be recorded and linked to the case.;"requirement REQ_065_ID_G_D33_2_2_4_2_5
+  system shall record exposure_linkages of om_system
+  stakeholders om_system
+  linked_to ""G.D33.2.2.4.2.5""";partially;Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.4.2.6;2005 - phin.txt;Demographic information should be collected about the investigator, including their name, address, and contact information, so that the investigator may be contacted to answer questions or to provide additional information.;"requirement REQ_066_ID_G_D33_2_2_4_2_6
+  system shall inform investigator
+  stakeholders person, investigator
+  linked_to ""G.D33.2.2.4.2.6""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.4.3.2;2005 - phin.txt;Detailed data must be collected about the source of exposure as well as the exposed entity to support contact exposure tracing.  Exposure data related to both the  potential source  and the potential spread include the entity’s type, Subject ID, Contact ID, contact’s name and address, exposure dates and times, health  status, and priority code.;"requirement REQ_067_ID_G_D33_2_2_4_3_2
+  system shall collect exposure_source_data of om_system
+  stakeholders om_system, person, exposure_source
+  linked_to ""G.D33.2.2.4.3.2""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.4.3.3;2005 - phin.txt;Epi data must be collected to assist in the exposure investigation of  health events. Standard epi data to be collected for exposure investigation parallels the data to be collected for case investigation and includes: onset date and time of symptoms, type of symptoms, risk factors, laboratory data, procedure data, and questionnaire responses.;"requirement REQ_068_ID_G_D33_2_2_4_3_3
+  system shall collect epi_data of om_system
+  stakeholders om_system
+  linked_to ""G.D33.2.2.4.3.3""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.4.3.4;2005 - phin.txt;Systems supporting OM must support capturing dynamic, event-specific data that describes contact between two subjects.;"requirement REQ_069_ID_G_D33_2_2_4_3_4
+  system shall record systems_supporting_om_capturing of om_system
+  stakeholders om_system, person
+  linked_to ""G.D33.2.2.4.3.4""";partially;"Generic capability/support wording was approximated as a record requirement; Value-DSL lacks native capability/provide/support constructs.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.5.1;2005 - phin.txt;Systems supporting OM should support the monitoring and follow-up activities required when tracking the  status of cases and exposed individuals.;"requirement REQ_070_ID_G_D33_2_2_5_1
+  where condition_from_source_70
+  system shall monitor systems_supporting_om_monitoring of om_system
+  stakeholders om_system
+  linked_to ""G.D33.2.2.5.1""";partially;Unsupported analysis/capability verb was approximated with the nearest supported monitoring verb. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.5.1.1;2005 - phin.txt;Monitoring data should be collected about cases and exposed individuals who are isolated or quarantined because of a health event.;"requirement REQ_071_ID_G_D33_2_2_5_1_1
+  system shall collect monitoring_data of om_system
+  stakeholders om_system
+  linked_to ""G.D33.2.2.5.1.1""";partially;Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.5.1.2;2005 - phin.txt;Follow-up data should be collected from  subjects or their proxies to track symptoms and compliance with  recommended treatment plans or prophylaxis.;"requirement REQ_072_ID_G_D33_2_2_5_1_2
+  system shall collect follow_up_data of om_system
+  stakeholders om_system, person
+  linked_to ""G.D33.2.2.5.1.2""";partially;Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.6.5;2005 - phin.txt;Chain of custody information for forensic and select agent samples must be captured, including the person who collected the sample, the location of collection, all people who came into contact with the sample during the preparation for shipment to the laboratory, and the acceptance of the package by the shipper.;"requirement REQ_073_ID_G_D33_2_2_6_5
+  system shall inform shipper
+  stakeholders person, location, sample, shipper
+  linked_to ""G.D33.2.2.6.5""";partially;Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.7.2;2005 - phin.txt;Contraindication information should  be collected  to indicate why vaccinations, treatments, or antidotes  may not have been administered or why the patient may not have complied with prescribed interventions.;"requirement REQ_074_ID_G_D33_2_2_7_2
+  system shall inform patient
+  stakeholders om_system, patient
+  linked_to ""G.D33.2.2.7.2""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+G.D33.2.2.8.1;2005 - phin.txt;If an affected person suffers a negative reaction to a vaccine or prophylaxis that was administered, adverse event data may be collected and used to determine the need for additional interventions or to determine if there is a problem with the pharmaceutical, batch, or the administering  facility or person. For specific data requirements regarding adverse event data, please reference PHIN Preparedness Countermeasure/Response Administration Functional Requirements and Process Flows, available at www.cdc.gov/phin.;"requirement REQ_075_ID_G_D33_2_2_8_1
+  where condition_from_source_75
+  system shall collect adverse_event_data of person
+  stakeholders person
+  linked_to ""G.D33.2.2.8.1""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.9.1;2005 - phin.txt;Systems supporting OM should capture information such as the date and time of an activity, activity type, who initiated the activity, and contact information to generate activity logs for management purposes.;"requirement REQ_076_ID_G_D33_2_2_9_1
+  system shall inform om_system
+  stakeholders om_system
+  linked_to ""G.D33.2.2.9.1""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.2.9.2;2005 - phin.txt;Activity logs, which are tools for investigators to track their actions during a case, should be supported. For example, investigators may log calls made to monitor symptoms or calls made to schedule follow-up visits.;"requirement REQ_077_ID_G_D33_2_2_9_2
+  system shall log activity_logs of om_system
+  stakeholders om_system, investigator
+  linked_to ""G.D33.2.2.9.2""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.3.2.4;2005 - phin.txt;Systems supporting OM require the ability to capture information about possible cases and potential contacts from the identification process through the treatment and follow-up process, as supported by linkages among entities, events, and actions.;"requirement REQ_078_ID_G_D33_2_3_2_4
+  system shall inform om_system
+  stakeholders om_system
+  linked_to ""G.D33.2.3.2.4""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D33.2.3.3.2;2005 - phin.txt;Contacts of exposed entities (e.g., people, animals, places) may be traced,  investigated, and monitored.;"requirement REQ_079_ID_G_D33_2_3_3_2
+  system shall monitor exposed_entity_contacts of om_system
+  stakeholders om_system
+  linked_to ""G.D33.2.3.3.2""";partially;Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+53;worldvista;The system shall provide a method for identifying who is AUTHORIZED to do something (for example, sign and order).;"requirement REQ_080_ID_X_53
+  system shall detect authorization_status of om_system
+  stakeholders om_system, ehr_system
+  linked_to ""53""";partially;Unsupported analysis/capability verb was approximated with the nearest supported monitoring verb.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+101;worldvista;The system shall audit sensitive records, enabling a site to follow up on a record accessed by a remote location.;"requirement REQ_081_ID_X_101
+  system shall log location_data of location
+  stakeholders location, ehr_system, site, remote_location
+  linked_to ""101""";partially;Audit semantics were mapped to logging because Value-DSL has no dedicated audit verb.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+114;worldvista;The system shall provide a means to view patient demographics, allergies and adverse reactions, postings (cautions, warnings, allergies, and advance directives), clinical reminders, current medications, problems, appointments, etc.;"requirement REQ_082_ID_X_114
+  system shall warn ehr_system using display
+  stakeholders person, patient, ehr_system
+  linked_to ""114""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+115;worldvista;The system shall provide background checks on duplicate orders, drug-drug interactions, and many other criteria that a user can choose.;"requirement REQ_083_ID_X_115
+  system shall record order_safety_checks of can_bus
+  stakeholders can_bus, ehr_system, user
+  linked_to ""115""";partially;"Generic capability/support wording was approximated as a record requirement; Value-DSL lacks native capability/provide/support constructs.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+123;worldvista;The system shall support the Ambulatory Care Date Capture project for capturing encounter data for workload credit, as well as capturing clinically relevant data for reminders and reports.;"requirement REQ_084_ID_X_123
+  system shall capture encounter_data of vehicle
+  stakeholders vehicle, ehr_system, ambulatory_care_system
+  linked_to ""123""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+126;worldvista;The system shall include a report construction feature so each site can individually run related to patient data including: Health Summary, Vitals Cumulative, Nutritional Assessment, Daily Order Summary and Order Summary for a Date Range reports.;"requirement REQ_085_ID_X_126
+  system shall record include_report_construction_feature of can_bus
+  stakeholders can_bus, patient, ehr_system, site
+  linked_to ""126""";partially;"Generic capability/support wording was approximated as a record requirement; Value-DSL lacks native capability/provide/support constructs. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+128;worldvista;"The system shall have the capability to capture and store risk, social and medical factors; including, but not limited to the following: Tobacco use and history including number of years and packs per day (PPD), Alcohol use history, Drug use history, Occupational environment, Marital status, Occupation, Religious preference, Ethnicity, Healthcare surrogate with alert, Guardian/legal representative with alert.";"requirement REQ_086_ID_X_128
+  system shall warn ehr_system
+  stakeholders vehicle, ehr_system
+  linked_to ""128""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+137;worldvista;The system shall include non-Standard Laboratory and Medication orderable files.;"requirement REQ_087_ID_X_137
+  system shall record include_non_standard_laboratory of ehr_system
+  stakeholders ehr_system
+  linked_to ""137""";partially;"Generic capability/support wording was approximated as a record requirement; Value-DSL lacks native capability/provide/support constructs.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D77.3.2.1.3;2021 - ConnectedVehiclePilotNYC.txt;The Vehicle Performance Monitoring application shall collect/log vehicle operational data (e.g. hard break, steering turns, accelerations based on accelerometers).;"requirement REQ_088_ID_G_D77_3_2_1_3
+  system shall log performance_parameters of vehicle
+  stakeholders vehicle, om_system, connected_vehicle_system
+  linked_to ""G.D77.3.2.1.3""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+G.D77.3.2.2.10;2021 - ConnectedVehiclePilotNYC.txt;The ASD shall have the capability of operating in active mode and recording normal driver behaviors and reactions while notifying the user of the perceived warnings.;"requirement REQ_089_ID_G_D77_3_2_2_10
+  system shall warn driver
+  stakeholders driver, user, connected_vehicle_system, asd
+  linked_to ""G.D77.3.2.2.10""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D77.3.2.3.9;2021 - ConnectedVehiclePilotNYC.txt;The ASD shall continuously monitor the location of the host vehicle as described in SAE J2945/1.;"requirement REQ_090_ID_G_D77_3_2_3_9
+  system shall monitor location_data of vehicle
+  stakeholders vehicle, location, connected_vehicle_system, asd, host_vehicle
+  linked_to ""G.D77.3.2.3.9""";partially;Quantitative/timing/capacity constraints are not first-class in Value-DSL and were preserved only implicitly.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D77.3.2.5.12;2021 - ConnectedVehiclePilotNYC.txt;The NYC CVPD performance monitoring subsystem shall utilize the post -processed event data and measure the driver actions in response to warnings and vehicle trajectories.;"requirement REQ_091_ID_G_D77_3_2_5_12
+  system shall warn driver
+  stakeholders driver, vehicle, connected_vehicle_system, nyc_cvpd_subsystem
+  linked_to ""G.D77.3.2.5.12""";partially;Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D77.3.8.3.7.1;2021 - ConnectedVehiclePilotNYC.txt;A PEDINXWALK alert shall be displayed if a pedestrian has been detected in a crosswalk that intersects the Transit Vehicle’s planned forward, left or right turn route at the intersection.;"requirement REQ_092_ID_G_D77_3_8_3_7_1
+  if pedestrian pedestrian_condition_detected
+  system shall warn transit_vehicle_operator using display
+  stakeholders pedestrian, vehicle, connected_vehicle_system, transit_vehicle_operator
+  linked_to ""G.D77.3.8.3.7.1""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D77.3.8.3.7.2;2021 - ConnectedVehiclePilotNYC.txt;The Pedestrian Detector shall send a pedestrian detected si gnal when a pedestrian is present in the crosswalk it monitors.;"requirement REQ_093_ID_G_D77_3_8_3_7_2
+  where condition_from_source_93
+  system shall inform connected_vehicle_system
+  stakeholders pedestrian, connected_vehicle_system
+  linked_to ""G.D77.3.8.3.7.2""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D77.3.8.3.7.4;2021 - ConnectedVehiclePilotNYC.txt;The PEDINXWALK System Latency for pedestrian detection shall be no more than 2 seconds from detecting pedestrian to alert.;"requirement REQ_094_ID_G_D77_3_8_3_7_4
+  system shall warn connected_vehicle_system
+  stakeholders pedestrian, om_system, connected_vehicle_system
+  linked_to ""G.D77.3.8.3.7.4""";partially;Quantitative/timing/capacity constraints are not first-class in Value-DSL and were preserved only implicitly.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D77.3.8.4.1.1;2021 - ConnectedVehiclePilotNYC.txt;The PED-SIG application shall correctly discern the pedestrian's position and intended crossing direction.;"requirement REQ_095_ID_G_D77_3_8_4_1_1
+  system shall detect pedestrian_presence of pedestrian
+  stakeholders pedestrian, connected_vehicle_system
+  linked_to ""G.D77.3.8.4.1.1""";partially;Unsupported analysis/capability verb was approximated with the nearest supported monitoring verb.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D77.3.8.4.1.5;2021 - ConnectedVehiclePilotNYC.txt;The PED -SIG application shall use the intersection geometry information to determine the pedestrian's orientation.;"requirement REQ_096_ID_G_D77_3_8_4_1_5
+  system shall inform connected_vehicle_system
+  stakeholders pedestrian, om_system, connected_vehicle_system
+  linked_to ""G.D77.3.8.4.1.5""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D77.3.8.4.1.7;2021 - ConnectedVehiclePilotNYC.txt;The PED -SIG Applicati on shall determine the intended crossing time from the intersection geographic information (distance) and the expected pedestrian travel rate (configurable).;"requirement REQ_097_ID_G_D77_3_8_4_1_7
+  system shall inform connected_vehicle_system
+  stakeholders pedestrian, om_system, trip, connected_vehicle_system
+  linked_to ""G.D77.3.8.4.1.7""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D77.3.8.4.1.19;2021 - ConnectedVehiclePilotNYC.txt;The Application shall calculate intersection crossing information based on pedestrian’s origin, destination, departure range, arrival range. (Note: this is for coordination of signal timing phase.);"requirement REQ_098_ID_G_D77_3_8_4_1_19
+  system shall inform connected_vehicle_system
+  stakeholders pedestrian, connected_vehicle_system
+  linked_to ""G.D77.3.8.4.1.19""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D81.3.1;automated-insulin-pump.txt;The dose of insulin to be delivered shall be computed by measuring the current level of blood sugar, comparing this to a previous measured level and computing the required dose as described in 3.3 below.;"requirement REQ_099_ID_G_D81_3_1
+  system shall measure blood_sugar_level of om_system
+  stakeholders om_system
+  linked_to ""G.D81.3.1""";partially;Unsupported analysis/capability verb was approximated with the nearest supported monitoring verb.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D81.3.2;automated-insulin-pump.txt;The system shall measure the level of blood sugar and deliver insulin if required every 10 minutes.;"requirement REQ_100_ID_G_D81_3_2
+  where condition_from_source_100
+  system shall measure blood_sugar_level of application_system
+  stakeholders application_system
+  linked_to ""G.D81.3.2""";partially;Quantitative/timing/capacity constraints are not first-class in Value-DSL and were preserved only implicitly.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.1.4;EHR System FuncReq - LA DHS.txt;The system has capability to identify the current physical location of any patient during their stay.;"requirement REQ_101_ID_G_D82_6_1_4
+  system shall detect location_data of location
+  stakeholders location, patient, ehr_system
+  linked_to ""G.D82.6.1.4""";partially;Unsupported analysis/capability verb was approximated with the nearest supported monitoring verb.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.1.12;EHR System FuncReq - LA DHS.txt;The system has capability to have voice recognition.;"requirement REQ_102_ID_G_D82_6_1_12
+  system shall record voice_input of ehr_system
+  stakeholders ehr_system
+  linked_to ""G.D82.6.1.12""";partially;"Generic capability/support wording was approximated as a record requirement; Value-DSL lacks native capability/provide/support constructs.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.1.16;EHR System FuncReq - LA DHS.txt;The system has capability to capture the user's information, both internal and external, who created and/or edited the record.;"requirement REQ_103_ID_G_D82_6_1_16
+  system shall inform user
+  stakeholders ehr_system, user
+  linked_to ""G.D82.6.1.16""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.1.19;EHR System FuncReq - LA DHS.txt;The system has capability to automatically populate demographic fields.;"requirement REQ_104_ID_G_D82_6_1_19
+  system shall record demographic_data of om_system
+  stakeholders om_system, person, ehr_system
+  linked_to ""G.D82.6.1.19""";partially;"Generic capability/support wording was approximated as a record requirement; Value-DSL lacks native capability/provide/support constructs.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.1.21;EHR System FuncReq - LA DHS.txt;The system has capability to manage, track and report user access to a specific patient's data.;"requirement REQ_105_ID_G_D82_6_1_21
+  system shall track manage_track_report_user of patient
+  stakeholders patient, ehr_system, user
+  linked_to ""G.D82.6.1.21""";partially;Unsupported analysis/capability verb was approximated with the nearest supported monitoring verb. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.1.41;EHR System FuncReq - LA DHS.txt;The system has capability for tracking patient ID changes and merges.;"requirement REQ_106_ID_G_D82_6_1_41
+  system shall track patient_id_changes of patient
+  stakeholders patient, ehr_system
+  linked_to ""G.D82.6.1.41""";partially;Unsupported analysis/capability verb was approximated with the nearest supported monitoring verb. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.2.87;EHR System FuncReq - LA DHS.txt;"The system supports historical patient lookup functionality such as  viewing a patient‘s locations (e.g., where they have been transferred to and from; view of all patients who have historically been in a given location during a time period).";"requirement REQ_107_ID_G_D82_6_2_87
+  system shall inform ehr_system using display
+  stakeholders om_system, location, patient, ehr_system
+  linked_to ""G.D82.6.2.87""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.4.135;EHR System FuncReq - LA DHS.txt;The system has the capability to present to a user condition specific care plans or guidelines based on vital signs outside of a specific range.;"requirement REQ_108_ID_G_D82_6_4_135
+  system shall inform user
+  stakeholders vehicle, ehr_system, user
+  linked_to ""G.D82.6.4.135""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.4.159;EHR System FuncReq - LA DHS.txt;The system has the capability to track active and inactive patient problems.;"requirement REQ_109_ID_G_D82_6_4_159
+  system shall track patient_problems of patient
+  stakeholders patient, ehr_system
+  linked_to ""G.D82.6.4.159""";partially;Unsupported analysis/capability verb was approximated with the nearest supported monitoring verb. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.4.167;EHR System FuncReq - LA DHS.txt;The system has the capability to flag the nurse for missing or late documentation.;"requirement REQ_110_ID_G_D82_6_4_167
+  system shall inform nurse
+  stakeholders ehr_system, nurse
+  linked_to ""G.D82.6.4.167""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.5.224;EHR System FuncReq - LA DHS.txt;The system has the capability to automatically notify caregivers if critical value is detected and document who acknowledged the receipt of notification, as well as the date/time.;"requirement REQ_111_ID_G_D82_6_5_224
+  where condition_from_source_111
+  system shall inform caregiver
+  stakeholders vehicle, om_system, ehr_system, caregiver
+  linked_to ""G.D82.6.5.224""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action. Compound requirement was collapsed to one primary Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.6.278;EHR System FuncReq - LA DHS.txt;The system has the capability to track and report number of consultations requested and number performed per physician.;"requirement REQ_112_ID_G_D82_6_6_278
+  system shall track consultation_counts of ehr_system
+  stakeholders ehr_system, physician
+  linked_to ""G.D82.6.6.278""";partially;Unsupported analysis/capability verb was approximated with the nearest supported monitoring verb. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.6.281;EHR System FuncReq - LA DHS.txt;The system has the capability to provide system-wide quality reporting and physician specific performance feedback.;"requirement REQ_113_ID_G_D82_6_6_281
+  system shall inform physician
+  stakeholders ehr_system, physician
+  linked_to ""G.D82.6.6.281""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited. Compound requirement was collapsed to one primary Value-DSL action.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.6.284;EHR System FuncReq - LA DHS.txt;The system has the ability to flag or identify patients that meet criteria for clinical studies.;"requirement REQ_114_ID_G_D82_6_6_284
+  system shall inform ehr_system
+  stakeholders patient, ehr_system
+  linked_to ""G.D82.6.6.284""";partially;Display/provide/present/list capability was approximated as an inform action because Value-DSL notification verbs are limited.;"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
+G.D82.6.9.427;EHR System FuncReq - LA DHS.txt;The system has the ability to track turnaround times for a defined group of physicians.;"requirement REQ_115_ID_G_D82_6_9_427
+  system shall track turnaround_times of ehr_system
+  stakeholders ehr_system, physician
+  linked_to ""G.D82.6.9.427""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+G.D82.6.12.504;EHR System FuncReq - LA DHS.txt;The system has the ability for the ICU component to acquire data from physiologic monitors.;"requirement REQ_116_ID_G_D82_6_12_504
+  system shall log physiologic_monitor_data of component
+  stakeholders component, om_system, ehr_system, icu_component, physiologic_monitor
+  linked_to ""G.D82.6.12.504""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+G.D82.6.12.505;EHR System FuncReq - LA DHS.txt;The system has the ability for the ICU component to acquire data from bedside monitors.;"requirement REQ_117_ID_G_D82_6_12_505
+  system shall capture bedside_monitor_data of component
+  stakeholders component, om_system, ehr_system, icu_component, bedside_monitor
+  linked_to ""G.D82.6.12.505""";yes;;Direct fit to the supported stakeholder/requirement constructs.
+G.D82.6.12.511;EHR System FuncReq - LA DHS.txt;The system has the ability to support graphing and trending of patient information such as vital signs.;"requirement REQ_118_ID_G_D82_6_12_511
+  system shall inform ehr_system
+  stakeholders patient, ehr_system
+  linked_to ""G.D82.6.12.511""";partially;"Some source semantics use unsupported capability/display/calculation wording; mapped to the nearest Value-DSL action.";"Core stakeholder/action intent represented; secondary details may require separate requirements or unsupported DSL extensions."
